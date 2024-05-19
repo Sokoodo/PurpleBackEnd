@@ -30,8 +30,6 @@ def save_file_get_path(file: FileStorage, instance_path, filename: str):
     file.save(new_path)
     return new_path
 
-
-
 #
 #
 # def print_bpmn_elements(bpmn_graph):

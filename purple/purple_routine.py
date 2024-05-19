@@ -1,4 +1,3 @@
-import pm4py
 from pm4py import PetriNet, Marking
 from pm4py.objects.log.obj import EventLog
 from werkzeug.datastructures import FileStorage
@@ -6,15 +5,17 @@ from werkzeug.datastructures import FileStorage
 from purple.log_evaluator.log_evaluator import LogEvaluator, ILogEvaluator
 from purple.model_manager import bpmn_model_manager
 from purple.model_manager.bpmn_model_manager import save_file_get_path
-from purple.semantic_engine.semantic_engine import SemanticEngine, ISemanticEngine
-from purple.simulator.simulator import Simulator, ISimulator
+from purple.semantic_engine.i_semantic_engine import ISemanticEngine
+from purple.semantic_engine.or_semantic_engine import OrSemanticEngine
+from purple.simulator.i_simulator import ISimulator
+from purple.simulator.or_simulator import OrSimulator
 from purple.trace_evaluator.trace_evaluator import TraceEvaluator, ITraceEvaluator
 
 
 def purple_routine(se: ISemanticEngine, sim: ISimulator, le: ILogEvaluator, te: ITraceEvaluator):
     delta: [] = []
     event_log: EventLog = sim.global_simulate(delta)
-    print(se.get_initial_state())
+    # print(se.get_initial_state())
     # while delta is not []:
         # print("c")
         # sim.global_simulate(delta)
@@ -42,8 +43,8 @@ def order_relation(file: FileStorage, slider_value: str, instance_path):
             return None
         le = LogEvaluator()
         te = TraceEvaluator()
-        se = SemanticEngine(net)
-        sim = Simulator(se, te)
+        se = OrSemanticEngine(net)
+        sim = OrSimulator(se, te)
         return purple_routine(se, sim, le, te)
     else:
         return None
