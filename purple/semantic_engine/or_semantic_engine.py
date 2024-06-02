@@ -40,13 +40,12 @@ class OrSemanticEngine:
         for t in self.__model.transitions:
             for in_arc in t.in_arcs:
                 if str(old_element) == str(in_arc.source):
-                    print(f"QUAAAAAAAAAAAAAAAAAAAAAAAAk")
                     transitions.append(t.name)
 
-        if len(transitions) == 0:
-            return []
+        if len(transitions) != 0:
+            for t in transitions:
+                print("trans=" + t)
 
-        print("trans=" + transitions[0])
         return transitions
 
     def get_next_places(self, old_element: str):
@@ -57,7 +56,10 @@ class OrSemanticEngine:
                 if old_element == in_arc.source.name:
                     places.append(p.name)
 
+        strCom = ''
         if len(places) != 0:
-            print("plc=" + places[0])
+            for p in places:
+                strCom = strCom + p
+        print("plc=" + strCom)
 
         return places

@@ -24,12 +24,17 @@ class OrSimulator:
         i = 0
         self.__lts_states.update({f'S-{i}': [temp_place]})
         self.__lts = self.update_lts(f'S-{i}')
-        places = [temp_place]
+        places: [str] = [temp_place]
+
         while places.__len__() != 0:
-            print(f"plc= {places[0]}")
             i = i + 1
-            transitions = self.__se.get_next_transitions(places[0])
-            places = []
+            transitions = []
+
+            for p in places:
+                next_tr = self.__se.get_next_transitions(p)
+                print(next_tr)
+                if next_tr not in transitions:
+                    transitions.append(next_tr)
 
             if transitions.__len__() != 0:
                 places = self.__se.get_next_places(transitions[0])
@@ -41,6 +46,7 @@ class OrSimulator:
         edge_labels = nx.get_edge_attributes(self.__lts, 'label')
         nx.draw_networkx_edge_labels(self.__lts, pos, edge_labels=edge_labels, font_color='red')
         plt.show()
+        print(self.__lts_states)
 
         return self.__eventLog
 
