@@ -12,7 +12,7 @@ from pm4py.objects.process_tree.obj import ProcessTree
 from pm4py.objects.petri_net import semantics, obj
 
 from collections import defaultdict
-from purple.log_evaluator.FootprintRelations import FootprintRelations
+from purple.log_evaluator.footprint_relations import FootprintRelations
 
 
 class ILogEvaluator(zope.interface.Interface):
@@ -101,45 +101,44 @@ class LogEvaluator:
 
         return matrix
 
-    def get_alpha_relations(self, temp_petri: PetriNet):
-        transitions: [Transition] = temp_petri.transitions
+    def get_alpha_relations(self, net: PetriNet):
+        transitions: [PetriNet.Transition] = net.transitions
         matrix = {t.label: {} for t in transitions if t.label}
-
         for t in transitions:
-            t_name = t.label
-            if not t_name:
+            if not t.label:
                 continue
-            for next_t in self.get_visible_successors(t, temp_petri):
+            for next_t in self.get_visible_successors(t, net):
                 next_t_name = next_t.label
                 if next_t_name:
-                    matrix[t_name][next_t_name] = FootprintRelations.SEQUENCE
-
+                    matrix[t.label][next_t_name] = FootprintRelations.SEQUENCE
+        print(matrix)
         return matrix
 
-    def get_visible_successors(self, transition, net: PetriNet):
-        next_transitions = []
-        for t in net.transitions:
-            out_places: [PetriNet.Place] = []
-            for out_arc in t.out_arcs:
-                out_places.append(self.getPlace(out_arc.target, net))
-            for op in out_places:
-                for out_places_arc in op.out_arcs:
-                    next_transitions.append(self.getTransition(out_places_arc.target, net))
+    def get_visible_successors(self, transition: [PetriNet.Transition], net: PetriNet):
+        next_transitions: [PetriNet.Transition] = []
+        out_places: [PetriNet.Place] = []
+        for out_arc in transition.out_arcs:
+            temp_place = self.getPlace(out_arc.target, net.places)
+            if temp_place is not None:
+                out_places.append(temp_place)
+        for op in out_places:
+            for out_places_arc in op.out_arcs:
+                temp_trans = self.getTransition(out_places_arc.target.name, net.transitions)
+                if temp_trans is not None:
+                    next_transitions.append(temp_trans)
 
         visible_successors = [t for t in next_transitions if isinstance(t, PetriNet.Transition) and t.label is not None]
 
         return visible_successors
 
-    def getPlace(self, place_name, net: PetriNet):
-        for p in net.places:
-            if p.name == place_name:
-                print(place_name)
+    def getPlace(self, place_name, places: [PetriNet.Place]):
+        for p in places:
+            if str(p.name) == str(place_name):
                 return p
 
-    def getTransition(self, transition_name, net: PetriNet):
-        for t in net.transitions:
-            if t.name == transition_name:
-                print(transition_name)
+    def getTransition(self, transition_name, transitions: [PetriNet.Transition]):
+        for t in transitions:
+            if str(t.name) == str(transition_name):
                 return t
 
     def get_alpha_relations_from_process_tree(self, process_tree):

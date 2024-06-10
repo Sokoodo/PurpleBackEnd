@@ -1,10 +1,12 @@
 import networkx as nx
 import zope
 from matplotlib import pyplot as plt
+from pm4py import PetriNet
 
 from purple.semantic_engine.or_semantic_engine import OrSemanticEngine
 from purple.simulator.i_simulator import ISimulator
 from purple.trace_evaluator.trace_evaluator import TraceEvaluator
+from purple.util.trace.i_trace import ITrace
 
 
 @zope.interface.implementer(ISimulator)
@@ -12,7 +14,7 @@ class OrSimulator:
     def __init__(self, se, te):
         self.__lts = nx.DiGraph()
         self.__lts_states: {str, [str]} = {}
-        self.__eventLog = []
+        self.__eventLog: [str, ITrace] = []
         self.__se: OrSemanticEngine = se
         self.__te: TraceEvaluator = te
 
@@ -20,26 +22,35 @@ class OrSimulator:
         return self.__eventLog
 
     def global_simulate(self, delta):
+
+        if delta is None or len(delta) == 0:
+            for trace in self.random_simulate():
+                self.__eventLog.append(trace)
         temp_place = self.__se.get_initial_state()
         i = 0
-        self.__lts_states.update({f'S-{i}': [temp_place]})
-        self.__lts = self.update_lts(f'S-{i}')
-        places: [str] = [temp_place]
+        self.__lts_states.update({'SI': []})
+        self.__lts = self.update_lts('SI')
+
+        self.__lts_states.update({f'S-{i}': [temp_place.name]})
+        self.__lts = self.update_lts(f'S-{i}', ['init0'], 'SI')
+        places: [PetriNet.Place] = [temp_place]
 
         while places.__len__() != 0:
             i = i + 1
-            transitions = []
+            transitions: [PetriNet.Transition] = []
 
             for p in places:
                 next_tr = self.__se.get_next_transitions(p)
-                print(next_tr)
-                if next_tr not in transitions:
+                # print(next_tr)
+                if next_tr not in transitions and next_tr is not None:
                     transitions.append(next_tr)
 
             if transitions.__len__() != 0:
                 places = self.__se.get_next_places(transitions[0])
-                self.__lts_states.update({f'S-{i}': places})
-                self.__lts = self.update_lts(f'S-{i}', transitions[0], f'S-{i - 1}')
+                self.__lts_states.update({f'S-{i}': places[0].name})
+                self.__lts = self.update_lts(f'S-{i}', [transitions[0].name], f'S-{i - 1}')
+            else:
+                places = []
 
         pos = nx.spring_layout(self.__lts)
         nx.draw(self.__lts, pos, with_labels=True, node_size=500, font_size=10, font_weight='bold')
@@ -50,9 +61,13 @@ class OrSimulator:
 
         return self.__eventLog
 
-    def random_simulate(self, temp_place):
-        temp_lts = self.__se.get_next_step(temp_place)
-        return temp_lts
+    def random_simulate(self, prefix):
+        next_steps = self.__se.get_next_step(prefix)
+
+        if next_steps.isEmpty():
+            return prefix
+
+        return self.random_simulate()
 
     def guided_simulate(self):
         pass
@@ -62,7 +77,7 @@ class OrSimulator:
         temp_lts.add_node(state)
 
         if edges is not None and old_state is not None:
-            temp_lts.add_edge(old_state, state, label=edges)
+            temp_lts.add_edge(old_state, state, label=edges[0])
             # print(temp_lts.edges.__getattribute__(__name=transition))
 
         return temp_lts
