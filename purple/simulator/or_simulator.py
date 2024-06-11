@@ -2,6 +2,7 @@ import networkx as nx
 import zope
 from matplotlib import pyplot as plt
 from pm4py import PetriNet
+from pm4py.objects.log.obj import Trace
 
 from purple.semantic_engine.or_semantic_engine import OrSemanticEngine
 from purple.simulator.i_simulator import ISimulator
@@ -21,19 +22,13 @@ class OrSimulator:
     def get_event_log(self):
         return self.__eventLog
 
-    def global_simulate(self, delta):
+    def global_simulate(self, delta: [Trace]):
 
         if delta is None or len(delta) == 0:
-            for trace in self.random_simulate():
-                self.__eventLog.append(trace)
-        temp_place = self.__se.get_initial_state()
-        i = 0
-        self.__lts_states.update({'SI': []})
-        self.__lts = self.update_lts('SI')
+            for trace in self.random_simulate().values():
+                self.__eventLog.append(trace.values())
 
-        self.__lts_states.update({f'S-{i}': [temp_place.name]})
-        self.__lts = self.update_lts(f'S-{i}', ['init0'], 'SI')
-        places: [PetriNet.Place] = [temp_place]
+
 
         while places.__len__() != 0:
             i = i + 1
@@ -61,11 +56,22 @@ class OrSimulator:
 
         return self.__eventLog
 
-    def random_simulate(self, prefix):
-        next_steps = self.__se.get_next_step(prefix)
+    def random_simulate(self):
+        temp_place = self.__se.get_initial_state()
+        i = 0
+        self.__lts_states.update({'SI': []})
+        self.__lts = self.update_lts('SI')
+
+        self.__lts_states.update({f'S-{i}': [temp_place.name]})
+        self.__lts = self.update_lts(f'S-{i}', ['init0'], 'SI')
+        places: [PetriNet.Place] = [temp_place]
+
+
+    def finalize_sim(self):
+        next_steps: [str, ITrace] = self.__se.get_next_step()
 
         if next_steps.isEmpty():
-            return prefix
+            return next_steps
 
         return self.random_simulate()
 

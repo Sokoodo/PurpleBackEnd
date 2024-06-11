@@ -14,7 +14,7 @@ from purple.trace_evaluator.trace_evaluator import TraceEvaluator, ITraceEvaluat
 
 def purple_routine(se: ISemanticEngine, sim: ISimulator, le: ILogEvaluator, te: ITraceEvaluator, tau: int):
     delta: [Trace] = []
-    event_log: Event = sim.global_simulate(delta)
+    event_log: EventLog = sim.global_simulate(delta)
     # print(se.get_initial_state())
     # while delta is not []:
         # print("c")
