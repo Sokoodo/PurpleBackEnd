@@ -36,19 +36,14 @@ class OrSemanticEngine:
         # print(self.__finalPlace)
         pass
 
-    def get_next_transitions(self, old_element: PetriNet.Place):
+    def get_next_transition(self, old_element: PetriNet.Place):
         transitions: [PetriNet.Transition] = []
-        print(old_element)
-        for t in self.__model.transitions:
-            for in_arc in t.in_arcs:
-                if str(old_element.name) == str(in_arc.source.name):
-                    transitions.append(t)
 
-        # if len(transitions) != 0:
-        #     return transitions[0]
-            # for t in transitions:
-            #     pass
-                # print("trans=" + t)
+        if old_element is not None and len(old_element.out_arcs) > 0:
+            for t in self.__model.transitions:
+                for out_arc in old_element.out_arcs:
+                    if str(t.name) == str(out_arc.target.name):
+                        transitions.append(t)
 
         return transitions[0] if len(transitions) > 0 else None
 
@@ -60,14 +55,7 @@ class OrSemanticEngine:
                 if str(old_element.name) == str(in_arc.source.name):
                     places.append(p)
 
-        strCom = ''
-        if len(places) != 0:
-            for p in places:
-                pass
-                # strCom = strCom + p
-        # print("plc=" + strCom)
-
         return places
 
-    def get_next_step(self, prefix):
+    def get_next_step(self, prefix: PetriNet.Place):
         pass

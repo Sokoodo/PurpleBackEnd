@@ -1,5 +1,5 @@
 from pm4py import PetriNet, Marking
-from pm4py.objects.log.obj import EventLog, Event, Trace
+from pm4py.objects.log.obj import EventLog, Trace
 from werkzeug.datastructures import FileStorage
 
 from purple.log_evaluator.log_evaluator import LogEvaluator, ILogEvaluator
@@ -14,11 +14,14 @@ from purple.trace_evaluator.trace_evaluator import TraceEvaluator, ITraceEvaluat
 
 def purple_routine(se: ISemanticEngine, sim: ISimulator, le: ILogEvaluator, te: ITraceEvaluator, tau: int):
     delta: [Trace] = []
-    event_log: EventLog = sim.global_simulate(delta)
+    event_log: EventLog = EventLog()
+    for trace in sim.global_simulate(delta):
+        event_log.append(trace)
+        print(event_log)
     # print(se.get_initial_state())
     # while delta is not []:
         # print("c")
-        # sim.global_simulate(delta)
+        # event_log = event_log.append(sim.global_simulate(delta))
         # delta = le.evaluate(event_log, delta)
 
     return event_log

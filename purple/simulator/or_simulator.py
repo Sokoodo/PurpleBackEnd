@@ -7,15 +7,14 @@ from pm4py.objects.log.obj import Trace
 from purple.semantic_engine.or_semantic_engine import OrSemanticEngine
 from purple.simulator.i_simulator import ISimulator
 from purple.trace_evaluator.trace_evaluator import TraceEvaluator
-from purple.util.trace.i_trace import ITrace
 
 
 @zope.interface.implementer(ISimulator)
 class OrSimulator:
     def __init__(self, se, te):
         self.__lts = nx.DiGraph()
-        self.__lts_states: {str, [str]} = {}
-        self.__eventLog: [str, ITrace] = []
+        self.__lts_states: {str, [PetriNet.Place]} = {}
+        self.__eventLog: [str, Trace] = []
         self.__se: OrSemanticEngine = se
         self.__te: TraceEvaluator = te
 
@@ -23,29 +22,10 @@ class OrSimulator:
         return self.__eventLog
 
     def global_simulate(self, delta: [Trace]):
-
         if delta is None or len(delta) == 0:
-            for trace in self.random_simulate().values():
-                self.__eventLog.append(trace.values())
-
-
-
-        while places.__len__() != 0:
-            i = i + 1
-            transitions: [PetriNet.Transition] = []
-
-            for p in places:
-                next_tr = self.__se.get_next_transitions(p)
-                # print(next_tr)
-                if next_tr not in transitions and next_tr is not None:
-                    transitions.append(next_tr)
-
-            if transitions.__len__() != 0:
-                places = self.__se.get_next_places(transitions[0])
-                self.__lts_states.update({f'S-{i}': places[0].name})
-                self.__lts = self.update_lts(f'S-{i}', [transitions[0].name], f'S-{i - 1}')
-            else:
-                places = []
+            # for trace in self.random_simulate(final_trace):
+            #     print(trace)
+            self.__eventLog.append(self.random_simulate())
 
         pos = nx.spring_layout(self.__lts)
         nx.draw(self.__lts, pos, with_labels=True, node_size=500, font_size=10, font_weight='bold')
@@ -57,23 +37,44 @@ class OrSimulator:
         return self.__eventLog
 
     def random_simulate(self):
-        temp_place = self.__se.get_initial_state()
-        i = 0
-        self.__lts_states.update({'SI': []})
-        self.__lts = self.update_lts('SI')
+        initial_place = self.__se.get_initial_state()
 
-        self.__lts_states.update({f'S-{i}': [temp_place.name]})
-        self.__lts = self.update_lts(f'S-{i}', ['init0'], 'SI')
-        places: [PetriNet.Place] = [temp_place]
+        self.__lts_states.update({'S-I': []})
+        self.__lts = self.update_lts('S-I')
 
+        self.__lts_states.update({'S-1': [initial_place]})
+        self.__lts = self.update_lts('S-1', ['initEdge'], 'S-I')
 
-    def finalize_sim(self):
-        next_steps: [str, ITrace] = self.__se.get_next_step()
+        return self.finalize_sim(initial_place)
 
-        if next_steps.isEmpty():
-            return next_steps
+    def finalize_sim(self, initial_place: PetriNet.Place):
+        # next_steps: [str, Trace] = self.__se.get_next_step(initial_place)
+        final_trace = Trace()
+        places: [PetriNet.Place] = [initial_place]
+        i = 1
+        while places.__len__() > 0:
+            i = i + 1
+            transitions: [PetriNet.Transition] = []
 
-        return self.random_simulate()
+            for p in places:
+                next_tr = self.__se.get_next_transition(p)
+                if next_tr not in transitions and next_tr is not None:
+                    transitions.append(next_tr)
+
+            if transitions.__len__() > 0:
+                places = []
+                for t in transitions:
+                    places.extend(self.__se.get_next_places(t))
+                for p in places:
+                    self.__lts_states.update({f'S-{i}': [p]})
+                    self.__lts = self.update_lts(f'S-{i}', [transitions[0].name], f'S-{i - 1}')
+            else:
+                places = []
+
+        # if not next_steps:
+        #     return self.__lts_states
+
+        return final_trace
 
     def guided_simulate(self):
         pass

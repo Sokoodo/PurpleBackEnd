@@ -18,7 +18,7 @@ cors = CORS(app, resource={
 @app.route('/api/order-relation/event-log', methods=['POST'])
 def upload_graph():
     file = request.files['singleFile']
-    slider_value = request.args.get('sliderValue')
+    slider_value = int(request.args.get('sliderValue'))
     event_log = purple_routine.order_relation(file, slider_value, app.instance_path[:-9])
 
     file_name = secure_filename(file.filename)
