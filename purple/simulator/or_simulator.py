@@ -1,8 +1,10 @@
+from datetime import datetime, timedelta
+
 import networkx as nx
 import zope
 from matplotlib import pyplot as plt
 from pm4py import PetriNet
-from pm4py.objects.log.obj import Trace
+from pm4py.objects.log.obj import Trace, Event
 
 from purple.semantic_engine.or_semantic_engine import OrSemanticEngine
 from purple.simulator.i_simulator import ISimulator
@@ -43,7 +45,7 @@ class OrSimulator:
         self.__lts = self.update_lts('S-I')
 
         self.__lts_states.update({'S-1': [initial_place]})
-        self.__lts = self.update_lts('S-1', ['initEdge'], 'S-I')
+        self.__lts = self.update_lts('S-1', 'S-I', ['initEdge'])
 
         return self.finalize_sim(initial_place)
 
@@ -51,9 +53,8 @@ class OrSimulator:
         # next_steps: [str, Trace] = self.__se.get_next_step(initial_place)
         final_trace = Trace()
         places: [PetriNet.Place] = [initial_place]
-        i = 1
+        i = 2
         while places.__len__() > 0:
-            i = i + 1
             transitions: [PetriNet.Transition] = []
 
             for p in places:
@@ -65,21 +66,23 @@ class OrSimulator:
                 places = []
                 for t in transitions:
                     places.extend(self.__se.get_next_places(t))
-                for p in places:
-                    self.__lts_states.update({f'S-{i}': [p]})
-                    self.__lts = self.update_lts(f'S-{i}', [transitions[0].name], f'S-{i - 1}')
+                    self.__lts_states.update({f'S-{i}': [self.__se.get_next_places(t)]})
+                    self.__lts = self.update_lts(f'S-{i}', f'S-{i - 1}', [t.name])
+                    final_trace.append(Event({
+                        "concept:name": t.name,
+                        "time:timestamp": datetime.now() + timedelta(microseconds=i)
+                    }))
+                    i = i + 1
             else:
                 places = []
 
-        # if not next_steps:
-        #     return self.__lts_states
-
+        print(final_trace)
         return final_trace
 
     def guided_simulate(self):
         pass
 
-    def update_lts(self, state, edges: [str] = None, old_state: str = None):
+    def update_lts(self, state, old_state: str = None, edges: [str] = None):
         temp_lts = self.__lts
         temp_lts.add_node(state)
 

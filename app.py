@@ -1,8 +1,9 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
 from purple import purple_routine
+from purple.util.event_log_utils import event_log_to_json
 
 UPLOAD_FOLDER = '/path/to/the/uploads'
 app = Flask(__name__)
@@ -26,7 +27,7 @@ def upload_graph():
         return ["Problem with event log generation", ]
     # print(file.filename)
     else:
-        return [event_log, slider_value, file_name]
+        return event_log_to_json(event_log)
 
 
 if __name__ == '__main__':

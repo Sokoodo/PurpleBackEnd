@@ -1,3 +1,5 @@
+import random
+
 import zope
 from pm4py import PetriNet
 
@@ -45,7 +47,7 @@ class OrSemanticEngine:
                     if str(t.name) == str(out_arc.target.name):
                         transitions.append(t)
 
-        return transitions[0] if len(transitions) > 0 else None
+        return transitions[random.randint(0, len(transitions)-1)] if len(transitions) > 0 else None
 
     def get_next_places(self, old_element: PetriNet.Transition):
         places: [PetriNet.Place] = []
