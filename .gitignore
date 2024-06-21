@@ -1,0 +1,14 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+.venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+bpmn_model.bpmn
+pnml_model.pnml
