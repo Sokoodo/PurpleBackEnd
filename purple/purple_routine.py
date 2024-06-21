@@ -17,7 +17,8 @@ def purple_routine(se: ISemanticEngine, sim: ISimulator, le: ILogEvaluator, te: 
     event_log: EventLog = EventLog()
     for trace in sim.global_simulate(delta):
         event_log.append(trace)
-        print(event_log)
+        # print(event_log)
+        le.get_footprint_matrix_from_event_log(event_log)
     # print(se.get_initial_state())
     # while delta is not []:
         # print("c")
@@ -48,7 +49,7 @@ def order_relation(file: FileStorage, tau: int, instance_path):
         te = TraceEvaluator()
         se = OrSemanticEngine(net)
         sim = OrSimulator(se, te)
-        le.get_alpha_relations(net)
+        le.get_footprint_matrix_from_petri(net)
         return purple_routine(se, sim, le, te, tau)
     else:
         return None

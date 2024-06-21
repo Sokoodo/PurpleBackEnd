@@ -13,11 +13,7 @@ from pm4py.objects.petri_net import semantics, obj
 
 from collections import defaultdict
 from purple.log_evaluator.footprint_relations import FootprintRelations
-
-
-class ILogEvaluator(zope.interface.Interface):
-    def evaluate(self, event_log, delta):
-        pass
+from purple.log_evaluator.i_log_evaluator import ILogEvaluator
 
 
 @zope.interface.implementer(ILogEvaluator)
@@ -27,6 +23,45 @@ class LogEvaluator:
 
     def evaluate(self, event_log, delta):
         pass
+
+    def get_footprint_matrix_from_event_log(self, log: EventLog):
+        footprint_matrix = {}
+
+        for trace in log:
+            print(trace.attributes)
+            print(trace.events)
+            events: [Event] = trace.events['concept:name']
+            for i in range(len(events) - 1):
+                init = events[i]
+                fin = events[i + 1]
+
+                if init not in footprint_matrix:
+                    footprint_matrix[init] = {}
+
+                if fin not in footprint_matrix:
+                    footprint_matrix[fin] = {}
+
+                if fin not in footprint_matrix[init]:
+                    footprint_matrix[init][fin] = FootprintRelations.SEQUENCE
+                else:
+                    del footprint_matrix[fin][init]
+        print("eventLog")
+        print(footprint_matrix)
+        return footprint_matrix
+
+    def get_footprint_matrix_from_petri(self, net: PetriNet):
+        transitions: [PetriNet.Transition] = net.transitions
+        matrix = {t.label: {} for t in transitions if t.label}
+        for t in transitions:
+            if not t.label:
+                continue
+            for next_t in self.get_visible_successors(t, net):
+                next_t_name = next_t.label
+                if next_t_name:
+                    matrix[t.label][next_t_name] = FootprintRelations.SEQUENCE
+        # print("petri")
+        # print(matrix)
+        return matrix
 
     def compare_alpha_relations(self, ref, disc, tau, ref_relations):
         missing = EventLog()
@@ -87,32 +122,6 @@ class LogEvaluator:
         if len(missing) / ref_relations >= tau / 100:
             return None
         return missing
-
-    def get_alpha_relations_from_event_log(self, log):
-        matrix = defaultdict(lambda: defaultdict(lambda: None))
-        for trace in log:
-            for i in range(len(trace) - 1):
-                init = trace[i]['concept:name']
-                fin = trace[i + 1]['concept:name']
-                if matrix[init][fin] is None:
-                    matrix[init][fin] = FootprintRelations.SEQUENCE
-                else:
-                    matrix[fin][init] = None  # This is how we handle the opposite relation
-
-        return matrix
-
-    def get_alpha_relations(self, net: PetriNet):
-        transitions: [PetriNet.Transition] = net.transitions
-        matrix = {t.label: {} for t in transitions if t.label}
-        for t in transitions:
-            if not t.label:
-                continue
-            for next_t in self.get_visible_successors(t, net):
-                next_t_name = next_t.label
-                if next_t_name:
-                    matrix[t.label][next_t_name] = FootprintRelations.SEQUENCE
-        print(matrix)
-        return matrix
 
     def get_visible_successors(self, transition: [PetriNet.Transition], net: PetriNet):
         next_transitions: [PetriNet.Transition] = []

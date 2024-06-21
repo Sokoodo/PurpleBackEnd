@@ -34,7 +34,7 @@ class OrSimulator:
         edge_labels = nx.get_edge_attributes(self.__lts, 'label')
         nx.draw_networkx_edge_labels(self.__lts, pos, edge_labels=edge_labels, font_color='red')
         plt.show()
-        print(self.__lts_states)
+        # print(self.__lts_states)
 
         return self.__eventLog
 
@@ -76,7 +76,7 @@ class OrSimulator:
             else:
                 places = []
 
-        print(final_trace)
+        # print(final_trace)
         return final_trace
 
     def guided_simulate(self):
