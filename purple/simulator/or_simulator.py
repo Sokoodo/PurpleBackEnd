@@ -1,14 +1,16 @@
 from datetime import datetime, timedelta
 
+import copy
 import networkx as nx
 import zope
 from matplotlib import pyplot as plt
 from pm4py import PetriNet
-from pm4py.objects.log.obj import Trace, Event
+from pm4py.objects.log.obj import Trace, Event, EventLog
 
+from purple.evaluator.delta import Delta
 from purple.semantic_engine.or_semantic_engine import OrSemanticEngine
 from purple.simulator.i_simulator import ISimulator
-from purple.trace_evaluator.trace_evaluator import TraceEvaluator
+from purple.evaluator.trace_evaluator.trace_evaluator import TraceEvaluator
 
 
 @zope.interface.implementer(ISimulator)
@@ -16,18 +18,41 @@ class OrSimulator:
     def __init__(self, se, te):
         self.__lts = nx.DiGraph()
         self.__lts_states: {str, [PetriNet.Place]} = {}
-        self.__eventLog: [str, Trace] = []
         self.__se: OrSemanticEngine = se
         self.__te: TraceEvaluator = te
 
-    def get_event_log(self):
-        return self.__eventLog
-
-    def global_simulate(self, delta: [Trace]):
-        if delta is None or len(delta) == 0:
-            # for trace in self.random_simulate(final_trace):
-            #     print(trace)
-            self.__eventLog.append(self.random_simulate())
+    def global_simulate(self, delta: Delta):
+        event_log = EventLog()
+        if delta is None or delta.is_empty():
+            event_log.append(self.random_simulate())
+            event_log.append(self.random_simulate())
+        else:
+            last_delta: Delta = copy.deepcopy(delta)
+            print("Delta")
+            print(last_delta.get_missing())
+            for delta_trace in last_delta.get_missing():
+                # if PURPLE.is_interrupted(): ??
+                #     break
+                starts = self.find_edge_and_get_target(delta_trace[0]["concept:name"])
+                print(self.find_edge_and_get_target(delta_trace[0]["concept:name"]))
+                other = delta_trace[0]["concept:name"]
+                print(delta_trace)
+                print(other)
+                print(self.__lts.edges(data=True))
+                if starts is None:
+                    event_log.append(self.random_simulate())
+                # else:
+                #     delta_trace._list.pop(0)
+                #     for start in starts:
+                #         prefix = self.get_prefix(start)
+                #         if not delta_trace._list:
+                #             for traces in self.finalize_sim(prefix, start).values():
+                #                 for delta_trace in traces.values():
+                #                     self.log.append(delta_trace)
+                #         else:
+                #             for traces in self.guided_sim(prefix, start, delta_trace).values():
+                #                 for delta_trace in traces.values():
+                #                     self.log.append(delta_trace)
 
         pos = nx.spring_layout(self.__lts)
         nx.draw(self.__lts, pos, with_labels=True, node_size=500, font_size=10, font_weight='bold')
@@ -36,7 +61,7 @@ class OrSimulator:
         plt.show()
         # print(self.__lts_states)
 
-        return self.__eventLog
+        return event_log
 
     def random_simulate(self):
         initial_place = self.__se.get_initial_state()
@@ -45,7 +70,7 @@ class OrSimulator:
         self.__lts = self.update_lts('S-I')
 
         self.__lts_states.update({'S-1': [initial_place]})
-        self.__lts = self.update_lts('S-1', 'S-I', ['initEdge'])
+        self.__lts = self.update_lts('S-1', 'S-I', ['initEdge'], Event())
 
         return self.finalize_sim(initial_place)
 
@@ -66,28 +91,35 @@ class OrSimulator:
                 places = []
                 for t in transitions:
                     places.extend(self.__se.get_next_places(t))
+                    event = Event(
+                        {"concept:name": t.name, "time:timestamp": datetime.now() + timedelta(microseconds=i)}
+                    )
                     self.__lts_states.update({f'S-{i}': [self.__se.get_next_places(t)]})
-                    self.__lts = self.update_lts(f'S-{i}', f'S-{i - 1}', [t.name])
-                    final_trace.append(Event({
-                        "concept:name": t.name,
-                        "time:timestamp": datetime.now() + timedelta(microseconds=i)
-                    }))
+                    self.__lts = self.update_lts(f'S-{i}', f'S-{i - 1}', [t.name], event)
+                    final_trace.append(event)
                     i = i + 1
             else:
                 places = []
 
+        # print("final_trace")
         # print(final_trace)
         return final_trace
 
     def guided_simulate(self):
         pass
 
-    def update_lts(self, state, old_state: str = None, edges: [str] = None):
+    def update_lts(self, state, old_state: str = None, edges: [str] = None, event: Event = None):
         temp_lts = self.__lts
         temp_lts.add_node(state)
 
-        if edges is not None and old_state is not None:
-            temp_lts.add_edge(old_state, state, label=edges[0])
+        if edges is not None and old_state is not None and event is not None:
+            temp_lts.add_edge(old_state, state, label=edges[0], event=event)
             # print(temp_lts.edges.__getattribute__(__name=transition))
 
         return temp_lts
+
+    def find_edge_and_get_target(self, edge_to_check):
+        for u, v, data in self.__lts.edges(data=True):
+            if data.get('label') == edge_to_check:
+                return v
+        return None
