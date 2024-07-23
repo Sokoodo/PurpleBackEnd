@@ -47,7 +47,18 @@ class OrSemanticEngine:
                     if str(t.name) == str(out_arc.target.name):
                         transitions.append(t)
 
-        return transitions[random.randint(0, len(transitions)-1)] if len(transitions) > 0 else None
+        return transitions[random.randint(0, len(transitions) - 1)] if len(transitions) > 0 else None
+
+    def get_next_transitions(self, old_element: PetriNet.Place):
+        transitions: [PetriNet.Transition] = []
+
+        if old_element is not None and len(old_element.out_arcs) > 0:
+            for t in self.__model.transitions:
+                for out_arc in old_element.out_arcs:
+                    if str(t.name) == str(out_arc.target.name):
+                        transitions.append(t)
+
+        return transitions
 
     def get_next_places(self, old_element: PetriNet.Transition):
         places: [PetriNet.Place] = []
@@ -59,5 +70,27 @@ class OrSemanticEngine:
 
         return places
 
+    def get_previous_places(self, transition: PetriNet.Transition) -> [PetriNet.Place]:
+        places: [PetriNet.Place] = []
+
+        for p in self.__model.places:
+            for out_arc in p.out_arcs:
+                if str(transition.name) == str(out_arc.target.name):
+                    places.append(p)
+
+        return places
+
     def get_next_step(self, prefix: PetriNet.Place):
         pass
+
+    def get_successive_place_by_transition_name(self, trans_name: str) -> [PetriNet.Place]:
+        for transition in self.__model.transitions:
+            if transition.name == trans_name:
+                return self.get_next_places(transition)
+        return None
+
+    def get_prev_place_by_transition_name(self, trans_name: str) -> [PetriNet.Place]:
+        for transition in self.__model.transitions:
+            if transition.name == trans_name:
+                return self.get_previous_places(transition)
+        return None

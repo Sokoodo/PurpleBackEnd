@@ -23,8 +23,8 @@ def purple_routine(se: ISemanticEngine, sim: ISimulator, le: ILogEvaluator, te: 
         # print(event_log)
     delta: Delta = le.evaluate(event_log, tau)
     # while not delta.is_empty():
-    for trace in sim.global_simulate(delta):
-        event_log.append(trace)
+    # for trace in sim.global_simulate(delta):
+    #     event_log.append(trace)
     #     delta = le.evaluate(event_log, tau)
 
     # event_log_footprint_matrix = ar.get_footprint_matrix_from_event_log(event_log)
@@ -32,8 +32,24 @@ def purple_routine(se: ISemanticEngine, sim: ISimulator, le: ILogEvaluator, te: 
     # print(event_log_footprint_matrix)
     # delta = ar.compare_footprint_matrices(event_log_footprint_matrix, le.get_footprint_matrix(), tau )
     # print(delta.get_missing())
+    new_event_log = remove_duplicate_traces(event_log)
+    sim.show_lts()
+    return new_event_log
 
-    return event_log
+
+def remove_duplicate_traces(event_log: EventLog) -> EventLog:
+    unique_traces = set()
+    new_event_log = EventLog()
+
+    for trace in event_log:
+        # Represent the trace as a tuple of event names to check for uniqueness
+        trace_tuple = tuple(event["concept:name"] for event in trace)
+
+        if trace_tuple not in unique_traces:
+            unique_traces.add(trace_tuple)
+            new_event_log.append(trace)
+
+    return new_event_log
 
 
 def order_relation(file: FileStorage, tau: int, instance_path):
