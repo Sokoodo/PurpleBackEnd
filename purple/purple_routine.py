@@ -23,8 +23,8 @@ def purple_routine(se: ISemanticEngine, sim: ISimulator, le: ILogEvaluator, te: 
         # print(event_log)
     delta: Delta = le.evaluate(event_log, tau)
     # while not delta.is_empty():
-    # for trace in sim.global_simulate(delta):
-    #     event_log.append(trace)
+    for trace in sim.global_simulate(delta):
+        event_log.append(trace)
     #     delta = le.evaluate(event_log, tau)
 
     # event_log_footprint_matrix = ar.get_footprint_matrix_from_event_log(event_log)

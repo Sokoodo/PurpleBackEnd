@@ -76,7 +76,7 @@ class OrSimulator:
 
         if not self.__lts.has_node('S-I') and not self.__lts.has_node('S-1'):
             self.__lts = self.update_lts('S-I')
-            self.__lts = self.update_lts('S-1', 'S-I', ['initEdge'], Event())
+            self.__lts = self.update_lts('S-1', 'S-I', ['initEdge'], Event(), [initial_place])
 
         return self.finalize_random_sim(initial_place)
 
@@ -87,14 +87,15 @@ class OrSimulator:
         while places.__len__() > 0:
             transitions: [PetriNet.Transition] = []
             old_place_for_tracking = []
+            copy_places = copy.deepcopy(places)
             for p in places:
-                copy_places = places
-                next_tr = self.__se.get_next_transition(p)
+                next_tr: PetriNet.Transition = self.__se.get_next_transition(p)
                 if next_tr not in transitions and next_tr is not None:
                     transitions.append(next_tr)
+                    copy_places = self.remove_place_from_places(copy_places, p)
                     old_place_for_tracking.append({
                         "trans": next_tr,
-                        "placesForState": [copy_places.remove(p)]
+                        "placesForState": copy.deepcopy(copy_places)
                     })
                 else:
                     for item in old_place_for_tracking:
@@ -103,6 +104,7 @@ class OrSimulator:
 
             if transitions.__len__() > 0:
                 places = []
+                other_places_to_add
                 for t in transitions:
                     next_places = self.__se.get_next_places(t)
                     places_for_state: [PetriNet.Place] = []
@@ -132,6 +134,12 @@ class OrSimulator:
         # print(final_trace)
         print(self.__lts)
         return final_trace
+
+    def remove_place_from_places(self, pl_list: [PetriNet.Place], p: PetriNet.Place):
+        for place in pl_list:
+            if place.name == p.name:
+                pl_list.remove(place)
+        return pl_list
 
     def place_to_dict(self, place: PetriNet.Place) -> dict:
         return {
