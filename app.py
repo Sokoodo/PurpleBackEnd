@@ -27,7 +27,8 @@ def upload_graph():
         return ["Problem with event log generation", ]
     # print(file.filename)
     else:
-        return event_log_to_json(event_log)
+        return "ciao"
+        # return event_log_to_json(event_log)
 
 
 if __name__ == '__main__':

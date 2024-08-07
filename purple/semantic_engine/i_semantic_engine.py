@@ -5,7 +5,7 @@ class ISemanticEngine(zope.interface.Interface):
     def get_model(self):
         pass
 
-    def get_initial_state(self):
+    def get_initial_marking(self):
         pass
 
     def find_initial_and_final_state(self):

@@ -1,16 +1,16 @@
 import zope.interface
-from pm4py.objects.log.obj import EventLog
+from pm4py.objects.log.obj import EventLog, Trace
 
 from purple.evaluator.delta import Delta
 from purple.evaluator.log_evaluator.i_log_evaluator import ILogEvaluator
-from purple.evaluator.log_evaluator.log_evaluator_or.alpha_relations import AlphaRelations
+from purple.evaluator.log_evaluator.log_evaluator_or.alpha_relations import get_footprint_matrix_from_petri, \
+    compare_footprint_matrices, get_footprint_matrix_from_traces
 
 
 @zope.interface.implementer(ILogEvaluator)
 class LogEvaluator:
     def __init__(self, net):
-        self.__ar = AlphaRelations()
-        self.__petri_footprint_matrix = self.__ar.get_footprint_matrix_from_petri(net)
+        self.__petri_footprint_matrix = get_footprint_matrix_from_petri(net)
         self.__ref_relations = len(self.__petri_footprint_matrix)
         print("petri_footprint_matrix")
         print(self.__petri_footprint_matrix)
@@ -23,14 +23,12 @@ class LogEvaluator:
     def get_footprint_matrix(self):
         return self.__petri_footprint_matrix
 
-    def evaluate(self, el: EventLog, tau) -> Delta | None:
-        footprint_matrix_from_event_log = self.__ar.get_footprint_matrix_from_event_log(el)
-        print("log_footprint_matrix")
-        print(footprint_matrix_from_event_log)
+    def evaluate(self, traces, tau):
+        footprint_matrix_from_event_log = get_footprint_matrix_from_traces(traces)
         return self.get_delta(footprint_matrix_from_event_log, tau)
 
-    def get_delta(self, footprint_matrix_from_event_log, tau) -> Delta | None:
-        return Delta(self.__ar.compare_footprint_matrices(
+    def get_delta(self, footprint_matrix_from_event_log, tau):
+        return Delta(compare_footprint_matrices(
             footprint_matrix_from_event_log,
             self.__petri_footprint_matrix, tau,
             self.__ref_relations)

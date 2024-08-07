@@ -9,11 +9,11 @@ def event_log_to_json(event_log: EventLog):
     for trace in event_log:
         trace_dict = {
             "attributes": trace.attributes,
-            "events": []
+            "events": [],
         }
         for event in trace:
             event_dict = {
-                "attributes": dict(event)  # Convert event to a dictionary
+                "events": event # Convert event to a dictionary
             }
             trace_dict["events"].append(event_dict)
         log_dict.append(trace_dict)
