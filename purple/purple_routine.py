@@ -30,16 +30,18 @@ def purple_routine(se: ISemanticEngine, sim: ISimulator, le: ILogEvaluator, te: 
     print("Simple Traces After Initial Simulation:")
     print(simple_traces)
     while delta and not delta.is_empty():
-        state_mapping, temp_guided_traces = sim.global_simulate(delta, initial_marking, state_mapping)
-        simple_traces.extend(temp_guided_traces)  # Use extend to add lists of events
-        # Debug: Trace the new traces and delta
-        print(f"New Guided Traces: {temp_guided_traces}")
-        print(f"State Mapping: {state_mapping}")
+        for delta_trace in delta.get_missing():
+            state_mapping, temp_guided_traces = sim.global_simulate(delta_trace, initial_marking, state_mapping)
+            simple_traces.extend(temp_guided_traces)  # Use extend to add lists of events
+            # Debug: Trace the new traces and delta
+            print(f"New Guided Traces: {temp_guided_traces}")
+            print(f"State Mapping: {state_mapping}")
+            delta = le.evaluate(simple_traces, tau)
+            print(f"Updated Delta Missing: {delta.get_missing()}")
+            if delta.is_empty():
+                print("Delta is empty, breaking loop.")
+                break
         delta = le.evaluate(simple_traces, tau)
-    print(f"Updated Delta Missing: {delta.get_missing()}")
-
-    if delta.is_empty():
-        print("Delta is empty, breaking loop.")
 
     print("Final Simple Traces:")
     print(simple_traces)

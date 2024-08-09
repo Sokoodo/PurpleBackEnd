@@ -36,34 +36,36 @@ class OrSimulator:
         self.__lts.add_edge(0, self.__state_counter)  # Connecting the initial node to the first marking
         return state_mapping
 
-    def global_simulate(self, delta: Delta, initial_marking, state_mapping):
+    def global_simulate(self, delta_trace, initial_marking, state_mapping):
         traces = []
-        if delta is None or delta.is_empty():
+        if delta_trace is None:
             state_mapping, random_traces = self.random_simulation(initial_marking, state_mapping)
             traces.extend([random_traces])
         else:
-            print("Delta")
-            print(delta.get_missing())
-            for delta_trace in delta.get_missing():
-                print(delta_trace)
-                markings = find_marking(self.__lts, delta_trace[0]["concept:name"])
-                print(f"Markings: {markings}")
-                if markings is None or len(markings) == 0:
-                    state_mapping, random_traces = self.random_simulation(initial_marking, state_mapping)
-                    traces.extend([random_traces])
-                else:
-                    for m in markings:
-                        prefix = get_prefix_traces(self.__lts, initial_marking, m)
-                        if prefix is None:
-                            state_mapping, random_traces = self.random_simulation(initial_marking, state_mapping)
-                            traces.extend([random_traces])
-                        else:
-                            relation = self.parse_trace(delta_trace)
-                            print(f'Prefix Traces: {prefix}')
-                            state_mapping, guided_trace = self.guided_simulation(m, state_mapping, relation)
+            print(f"Delta_trace: {delta_trace}")
+            markings = find_marking(self.__lts, delta_trace[0]["concept:name"])
+            print(f"Markings: {markings}")
+            if markings is None or len(markings) == 0:
+                state_mapping, random_traces = self.random_simulation(initial_marking, state_mapping)
+                traces.extend([random_traces])
+            else:
+                for m in markings:
+                    prefix = get_prefix_traces(self.__lts, initial_marking, m)
+                    if prefix is None:
+                        state_mapping, random_traces = self.random_simulation(initial_marking, state_mapping)
+                        traces.extend([random_traces])
+                    else:
+                        relation = self.parse_trace(delta_trace)
+                        print(f'Prefix Traces: {prefix}')
+                        state_mapping, guided_trace = self.guided_simulation(m, state_mapping, relation)
+                        if len(guided_trace) > 0:
                             for gt in guided_trace:
                                 prefix.append(gt)
                             traces.extend([prefix])  # Append the guided trace
+                            break
+                        else:
+                            state_mapping, random_traces = self.random_simulation(initial_marking, state_mapping)
+                            traces.extend([random_traces])
 
         return state_mapping, traces
 
@@ -126,11 +128,10 @@ class OrSimulator:
                     # # Update LTS and stack
                     # if final_state:
                     #     stack.append((final_marking, final_state))
-                # If not enabled means that for example D needs 2 tokens, one on p4 and one on p5,
-                # so I have to make it work in the ELSE statement PORCODDIO, DOMANI VEDERE QUESTO
                 else:
                     # If the successive transition is not enabled
-                    stack.append((new_marking, new_state))
+                    state_mapping, random_traces = self.random_simulation(new_marking, state_mapping, traces,
+                                                                          current_marking)
         print(f'Random Traces: {random_traces}')
         return state_mapping, random_traces
 
@@ -156,13 +157,12 @@ class OrSimulator:
     #     return traces
 
     def random_simulation(self, initial_marking, state_mapping, guided_traces=None, source_marking=None):
-        traces = []
+        traces = guided_traces if guided_traces is not None else []
         frozen_marking = frozenset(initial_marking.items())
         if frozen_marking not in state_mapping:
             self.__state_counter += 1
             state_mapping[frozen_marking] = self.__state_counter
             self.__lts.add_node(self.__state_counter, marking=dict(initial_marking))
-            traces = guided_traces if guided_traces is not None else []
             frozen_source_marking = frozenset(source_marking.items())
             self.__lts.add_edge(state_mapping[frozen_source_marking], self.__state_counter,
                                 label=traces[len(traces) - 1])

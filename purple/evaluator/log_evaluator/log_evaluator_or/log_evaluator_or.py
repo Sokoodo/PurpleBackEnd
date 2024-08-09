@@ -3,14 +3,14 @@ from pm4py.objects.log.obj import EventLog, Trace
 
 from purple.evaluator.delta import Delta
 from purple.evaluator.log_evaluator.i_log_evaluator import ILogEvaluator
-from purple.evaluator.log_evaluator.log_evaluator_or.alpha_relations import get_footprint_matrix_from_petri, \
-    compare_footprint_matrices, get_footprint_matrix_from_traces
+from purple.evaluator.log_evaluator.log_evaluator_or.alpha_relations import compare_footprint_matrices, \
+    get_footprint_matrix_from_traces, create_footprint_matrix
 
 
 @zope.interface.implementer(ILogEvaluator)
 class LogEvaluator:
     def __init__(self, net):
-        self.__petri_footprint_matrix = get_footprint_matrix_from_petri(net)
+        self.__petri_footprint_matrix = create_footprint_matrix(net)
         self.__ref_relations = len(self.__petri_footprint_matrix)
         print("petri_footprint_matrix")
         print(self.__petri_footprint_matrix)

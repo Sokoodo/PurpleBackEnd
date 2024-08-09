@@ -1,7 +1,56 @@
 from pm4py import PetriNet
+from pm4py.objects.bpmn.obj import Marking
 from pm4py.objects.log.obj import EventLog, Trace, Event
 
 from purple.evaluator.log_evaluator.footprint_relations import FootprintRelations
+from pm4py.algo.simulation.playout.petri_net import algorithm as simulator
+
+
+def create_footprint_matrix(petri_net: PetriNet):
+    """
+    Create a footprint matrix from a list of paths.
+    """
+    paths = get_all_possible_paths(petri_net)
+    # Initialize an empty dictionary for the footprint matrix
+    footprint_matrix = {}
+
+    # Populate the footprint matrix
+    for path in paths:
+        for i in range(len(path) - 1):
+            current_transition = path[i]
+            next_transition = path[i + 1]
+
+            # If the current transition is not already in the footprint matrix, add it
+            if current_transition not in footprint_matrix:
+                footprint_matrix[current_transition] = {}
+
+            # Add the direct relation to the footprint matrix
+            footprint_matrix[current_transition][next_transition] = '->'
+
+    # Add any missing transitions with empty dictionaries
+    for path in paths:
+        for transition in path:
+            if transition not in footprint_matrix:
+                footprint_matrix[transition] = {}
+
+    return footprint_matrix
+
+
+def get_all_possible_paths(petri_net: PetriNet):
+    """
+    Get all the possible paths from the execution of a petri net.
+    """
+    im = Marking()
+    for p in petri_net.places:
+        if len(p.in_arcs) == 0:
+            im[p] = 1
+    all_paths = simulator.apply(petri_net, im, variant=simulator.Variants.EXTENSIVE,
+                                parameters={"max_trace_length": 10})
+    paths = []
+    for trace in all_paths:
+        path = [event['concept:name'] for event in trace]
+        paths.append(path)
+    return paths
 
 
 def get_footprint_matrix_from_petri(net: PetriNet):
@@ -50,6 +99,7 @@ def get_footprint_matrix_from_traces(traces):
     print(footprint_matrix)
 
     return footprint_matrix
+
 
 def compare_footprint_matrices(event_log_matrix, petri_net_matrix, tau, ref_relations):
     el_missing = EventLog()

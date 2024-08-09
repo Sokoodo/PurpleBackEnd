@@ -15,6 +15,7 @@ def find_marking(lts: nx.DiGraph, transition_name: str) -> [Marking]:
 
     Returns:
     - List[Marking]: A list of markings where the given transition name is present.
+    The source marking of the given transition name is also returned.
     """
     ret = []
 
