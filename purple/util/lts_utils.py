@@ -1,8 +1,39 @@
+from datetime import datetime, timedelta
 from typing import Set
 
 import networkx as nx
 from matplotlib import pyplot as plt
+from pm4py.objects.log.obj import Trace, Event
 from pm4py.objects.petri_net.obj import Marking
+from pm4py.objects.powl.obj import Transition
+
+
+def create_event(t, current_state, current_marking):
+    return Event({
+        "concept:name": t.name,
+        "time:timestamp": datetime.now() + timedelta(microseconds=current_state),
+        "marking": convert_marking_to_str(current_marking)
+    })
+
+
+def create_events_from_paths(unmatched_paths):
+    traces = []
+    i = 30
+    for path in unmatched_paths:
+        trace = Trace()
+        for t in path:
+            trace.append(Event({
+                "concept:name": t,
+                "time:timestamp": datetime.now() + timedelta(microseconds=i),
+                "marking": ""
+            }))
+            i += 1
+        traces.append(trace)
+    return traces
+
+
+def convert_marking_to_str(marking):
+    return {str(key): value for key, value in marking.items()}
 
 
 def find_marking(lts: nx.DiGraph, transition_name: str) -> [Marking]:
@@ -56,8 +87,8 @@ def get_prefix_traces(lts: nx.DiGraph, initial_marking: Marking, target_marking:
     if target_node is None:
         return None
 
-    # Initialize the list to store the edge names
-    edge_names = []
+    # Initialize the list to store the traces
+    trace: Trace = Trace()
 
     # Perform a reverse traversal from target_node to initial_marking
     current_node = target_node
@@ -72,16 +103,18 @@ def get_prefix_traces(lts: nx.DiGraph, initial_marking: Marking, target_marking:
         edge_data = lts.get_edge_data(predecessor, current_node)
 
         # Get the transition name (edge label) and add it to the list
-        transition_name = edge_data.get('label')
-        edge_names.append(transition_name)
+        t = Transition()
+        t.label = edge_data.get('label')
+        t.name = edge_data.get('label')
+        trace.append(create_event(t, current_node, lts.nodes[current_node].get('marking')))
 
         # Move to the predecessor node
         current_node = predecessor
 
     # Reverse the list to get the correct order from initial_marking to target_marking
-    edge_names.reverse()
+    reversed_trace = Trace(trace[::-1])
 
-    return edge_names
+    return reversed_trace
 
 
 def show_lts(lts):

@@ -1,18 +1,38 @@
-import copy
-from collections import defaultdict, deque
+from datetime import datetime, timedelta
 
 import networkx as nx
 import random
-import zope
-from pm4py.objects.log.obj import EventLog, Trace
-from pm4py.objects.petri_net.obj import Marking, PetriNet
 
-from purple.evaluator.delta import Delta
-from purple.evaluator.log_evaluator.footprint_relations import FootprintRelations
+import pm4py
+import zope
+from pm4py.objects.log.obj import Event, Trace
 from purple.semantic_engine.or_semantic_engine import PetriSemanticEngine
 from purple.simulator.i_simulator import ISimulator
 from purple.evaluator.trace_evaluator.trace_evaluator import TraceEvaluator
-from purple.util.lts_utils import find_marking, get_prefix_traces
+from purple.util.lts_utils import find_marking, get_prefix_traces, create_event
+
+
+def execute_transition_and_get_next_marking(transition, marking):
+    new_marking = marking.copy()
+    for arc in transition.in_arcs:
+        new_marking[arc.source] -= 1
+    for arc in transition.out_arcs:
+        new_marking[arc.target] = new_marking.get(arc.target, 0) + 1
+    return new_marking
+
+
+def is_enabled(transition, marking) -> bool:
+    return all(marking.get(arc.source, 0) > 0 for arc in transition.in_arcs)
+
+
+def parse_trace(trace):
+    events = trace._list
+    sequence = []
+    for i in range(len(events) - 1):
+        init = events[i]["concept:name"]
+        successive = events[i + 1]["concept:name"]
+        sequence.append((init, successive))
+    return sequence
 
 
 @zope.interface.implementer(ISimulator)
@@ -50,12 +70,12 @@ class OrSimulator:
                 traces.extend([random_traces])
             else:
                 for m in markings:
-                    prefix = get_prefix_traces(self.__lts, initial_marking, m)
+                    prefix: Trace = get_prefix_traces(self.__lts, initial_marking, m)
                     if prefix is None:
                         state_mapping, random_traces = self.random_simulation(initial_marking, state_mapping)
                         traces.extend([random_traces])
                     else:
-                        relation = self.parse_trace(delta_trace)
+                        relation = parse_trace(delta_trace)
                         print(f'Prefix Traces: {prefix}')
                         state_mapping, guided_trace = self.guided_simulation(m, state_mapping, relation)
                         if len(guided_trace) > 0:
@@ -69,30 +89,13 @@ class OrSimulator:
 
         return state_mapping, traces
 
-    def parse_trace(self, trace):
-        events = trace._list
-        sequence = []
-        for i in range(len(events) - 1):
-            init = events[i]["concept:name"]
-            successive = events[i + 1]["concept:name"]
-            sequence.append((init, successive))
-        return sequence
-
     def guided_simulation(self, source_marking, state_mapping, relation):
         """
         Simulate starting from the source_marking until reaching a final marking.
         Follows the path of init first, then directly the path of successive from the relation parameter.
-
-        Parameters:
-        - source_marking (Marking): The starting marking for the simulation.
-        - state_mapping (dict): A mapping of markings to states in the LTS.
-        - relation (list): A list of tuples specifying the init and successive transitions.
-
-        Returns:
-        - List[str]: A list of transition names representing the simulated trace.
         """
-        traces = []
-        random_traces = []
+        trace: Trace = Trace()
+        random_trace: Trace = Trace()
         stack = [(source_marking, state_mapping[frozenset(source_marking.items())])]
         visited_states = set()
 
@@ -106,58 +109,32 @@ class OrSimulator:
             successive_transition = self.__se.get_transition_by_name(successive)
 
             # Check if the initial transition is enabled
-            if self.is_enabled(init_transition, current_marking):
+            if is_enabled(init_transition, current_marking):
                 # Fire the initial transition
-                new_marking = self.execute_transition_and_get_next_marking(init_transition, current_marking)
-                traces.append(init_transition.name)
+                new_marking = execute_transition_and_get_next_marking(init_transition, current_marking)
+
+                trace.append(create_event(init_transition, current_state, current_marking))
 
                 # Find the new state in the LTS
                 new_state = state_mapping.get(frozenset(new_marking.items()))
 
                 # Check if the successive transition is enabled
-                if self.is_enabled(successive_transition, new_marking):
+                if is_enabled(successive_transition, new_marking):
                     # Fire the successive transition
-                    final_marking = self.execute_transition_and_get_next_marking(successive_transition, new_marking)
-                    traces.append(successive_transition.name)
+                    final_marking = execute_transition_and_get_next_marking(successive_transition, new_marking)
+                    trace.append(create_event(successive_transition, new_state, new_marking))
 
-                    state_mapping, random_traces = self.random_simulation(final_marking, state_mapping, traces,
-                                                                          new_marking)
-                    # # Find the final state in the LTS
-                    # final_state = state_mapping.get(frozenset(final_marking.items()))
-                    #
-                    # # Update LTS and stack
-                    # if final_state:
-                    #     stack.append((final_marking, final_state))
+                    state_mapping, random_trace = self.random_simulation(final_marking, state_mapping, trace,
+                                                                         new_marking)
                 else:
                     # If the successive transition is not enabled
-                    state_mapping, random_traces = self.random_simulation(new_marking, state_mapping, traces,
-                                                                          current_marking)
-        print(f'Random Traces: {random_traces}')
-        return state_mapping, random_traces
-
-    # def guided_simulation(self, source_marking, state_mapping, relation):
-    #     # the method has to make the simulation starting from the source_marking (and not from the initial_marking)
-    #     # until you arrive to a final marking of the petrinet
-    #     # and it has to chose at first the path of init and then directly the path of successive of the relation parameter
-    #     traces = []
-    #     stack = [(source_marking, state_mapping[frozenset(source_marking.items())])]
-    #     visited_states = set()
-    #     for init, successive in relation:
-    #         init_transition = self.__se.get_transition_by_name(init)
-    #         target_transition = self.__se.get_transition_by_name(successive)
-    #         current_marking, current_state = stack.pop()
-    #         enabled_transitions = [t for t in self.__se.get_model().transitions if self.is_enabled(t, current_marking)]
-    #         if not enabled_transitions:
-    #             continue
-    #         new_marking, target_state = self.finalize_sim_update_lts(
-    #             state_mapping, current_marking, current_state, transition
-    #         )
-    #         traces.append(transition.name)  # Add transition name to traces
-    #         stack.append((new_marking, target_state))
-    #     return traces
+                    state_mapping, random_trace = self.random_simulation(new_marking, state_mapping, trace,
+                                                                         current_marking)
+        print(f'Random Traces: {random_trace}')
+        return state_mapping, random_trace
 
     def random_simulation(self, initial_marking, state_mapping, guided_traces=None, source_marking=None):
-        traces = guided_traces if guided_traces is not None else []
+        traces: Trace = guided_traces if guided_traces is not None else Trace()
         frozen_marking = frozenset(initial_marking.items())
         if frozen_marking not in state_mapping:
             self.__state_counter += 1
@@ -165,7 +142,7 @@ class OrSimulator:
             self.__lts.add_node(self.__state_counter, marking=dict(initial_marking))
             frozen_source_marking = frozenset(source_marking.items())
             self.__lts.add_edge(state_mapping[frozen_source_marking], self.__state_counter,
-                                label=traces[len(traces) - 1])
+                                label=traces[len(traces) - 1]['concept:name'])
         stack = [(initial_marking, state_mapping[frozen_marking])]
         visited_states = set()
 
@@ -176,7 +153,7 @@ class OrSimulator:
                 continue
 
             visited_states.add(frozen_marking)
-            enabled_transitions = [t for t in self.__se.get_model().transitions if self.is_enabled(t, current_marking)]
+            enabled_transitions = [t for t in self.__se.get_model().transitions if is_enabled(t, current_marking)]
             if not enabled_transitions:
                 continue
 
@@ -184,13 +161,13 @@ class OrSimulator:
             new_marking, target_state = self.finalize_sim_update_lts(
                 state_mapping, current_marking, current_state, transition
             )
-            traces.append(transition.name)  # Add transition name to traces
+            traces.append(create_event(transition, current_state, current_marking))  # Add transition name to traces
             stack.append((new_marking, target_state))
 
         return state_mapping, traces  # Return a list of traces
 
     def finalize_sim_update_lts(self, state_mapping, current_marking, current_state, transition):
-        new_marking = self.execute_transition_and_get_next_marking(transition, current_marking)
+        new_marking = execute_transition_and_get_next_marking(transition, current_marking)
         frozen_marking = frozenset(new_marking.items())
         if frozen_marking not in state_mapping:
             self.__state_counter += 1
@@ -199,20 +176,6 @@ class OrSimulator:
         target_state = state_mapping[frozen_marking]
         self.__lts.add_edge(current_state, target_state, label=transition.name)
         return new_marking, target_state
-
-    def is_enabled(self, transition, marking) -> bool:
-        return all(marking.get(arc.source, 0) > 0 for arc in transition.in_arcs)
-
-    def execute_transition_and_get_next_marking(self, transition, marking):
-        new_marking = marking.copy()
-        for arc in transition.in_arcs:
-            new_marking[arc.source] -= 1
-        for arc in transition.out_arcs:
-            new_marking[arc.target] = new_marking.get(arc.target, 0) + 1
-        return new_marking
-
-    # def convert_marking_to_str(self, marking):
-    #     return {str(key): value for key, value in marking.items()}
 
     # def random_simulate(self):
     #     initial_place = self.__se.get_initial_state()
@@ -277,13 +240,6 @@ class OrSimulator:
     #     # print(final_trace)
     #     print(self.__lts)
     #     return final_trace
-
-    # def remove_place_from_places(self, pl_list: [PetriNet.Place], p: PetriNet.Place):
-    #     for place in pl_list:
-    #         if place.name == p.name:
-    #             pl_list.remove(place)
-    #     return pl_list
-    #
     # def place_to_dict(self, place: PetriNet.Place) -> dict:
     #     return {
     #         "name": place.name,
@@ -295,9 +251,6 @@ class OrSimulator:
     # def places_to_dict(self, places: [PetriNet.Place]) -> [dict]:
     #     return [self.place_to_dict(place) for place in places]
     #
-    # def guided_simulate(self):
-    #     pass
-    #
     # def update_lts(self, state, old_state: str = None, edges: [str] = None, event: Event = None, new_node_places=None):
     #     temp_lts = self.__lts
     #     temp_lts.add_node(state, places=[new_node_places])
@@ -307,9 +260,3 @@ class OrSimulator:
     #         # print(temp_lts.edges.__getattribute__(__name=transition))
     #
     #     return temp_lts
-    #
-    # def edge_exists_in_lts(self, edge_to_check) -> bool:
-    #     for u, v, data in self.__lts.edges(data=True):
-    #         if data.get('label') == edge_to_check:
-    #             return True
-    #     return False

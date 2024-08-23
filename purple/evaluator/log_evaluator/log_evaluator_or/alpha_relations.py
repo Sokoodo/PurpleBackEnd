@@ -6,7 +6,7 @@ from purple.evaluator.log_evaluator.footprint_relations import FootprintRelation
 from pm4py.algo.simulation.playout.petri_net import algorithm as simulator
 
 
-def create_footprint_matrix(petri_net: PetriNet):
+def get_footprint_matrix_from_eventlog(petri_net: PetriNet):
     """
     Create a footprint matrix from a list of paths.
     """
@@ -19,7 +19,6 @@ def create_footprint_matrix(petri_net: PetriNet):
         for i in range(len(path) - 1):
             current_transition = path[i]
             next_transition = path[i + 1]
-
             # If the current transition is not already in the footprint matrix, add it
             if current_transition not in footprint_matrix:
                 footprint_matrix[current_transition] = {}
@@ -33,13 +32,14 @@ def create_footprint_matrix(petri_net: PetriNet):
             if transition not in footprint_matrix:
                 footprint_matrix[transition] = {}
 
-    return footprint_matrix
+    return footprint_matrix, paths
 
 
 def get_all_possible_paths(petri_net: PetriNet):
     """
     Get all the possible paths from the execution of a petri net.
     """
+    print(f"{petri_net} PORCODIO")
     im = Marking()
     for p in petri_net.places:
         if len(p.in_arcs) == 0:
@@ -108,6 +108,7 @@ def compare_footprint_matrices(event_log_matrix, petri_net_matrix, tau, ref_rela
         if event not in event_log_matrix:  # quà entra quando l'evento non è nella 2a matrice
             if len(transitions) == 0:
                 trace = Trace()
+                # print(f"{event} PORCODIO")
                 trace._list.append(Event({"concept:name": event}))
                 el_missing.append(trace)
             for next_event in transitions:
@@ -129,10 +130,11 @@ def compare_footprint_matrices(event_log_matrix, petri_net_matrix, tau, ref_rela
         print(f"Trace: {events_str}")
 
     # Da testare quando guided sim funziona
-    # if len(el_missing) / ref_relations >= tau / 100:
-    #     print(f"{tau / 100}%, sotto al threshold")
-    #     return EventLog()
-    return el_missing
+    if (1 - len(el_missing) / ref_relations) >= tau / 100:
+        print(f"{tau / 100}, SOTTO AL THRESHOLD")
+        print(f"{1 - len(el_missing) / ref_relations}%, SOTTO AL THRESHOLD")
+        return EventLog(), True
+    return el_missing, False
 
 
 def get_visible_successors(transition: [PetriNet.Transition], net: PetriNet):

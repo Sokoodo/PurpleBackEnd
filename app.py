@@ -27,8 +27,23 @@ def upload_graph():
         return ["Problem with event log generation", ]
     # print(file.filename)
     else:
-        return "ciao"
-        # return event_log_to_json(event_log)
+        return event_log_to_json(event_log)
+
+
+@app.route('/api/custom-noise/event-log', methods=['POST'])
+def custom_noise():
+    file = request.files['singleFile']
+    precision = int(request.args.get('precision'))
+    cost = int(request.args.get('cost'))
+    traces_number = int(request.args.get('tracesNumber'))
+    event_log = purple_routine.custom_noise(file, precision, cost, traces_number, app.instance_path[:-9])
+
+    file_name = secure_filename(file.filename)
+    if event_log is None:
+        return ["Problem with event log generation", ]
+    # print(file.filename)
+    else:
+        return event_log_to_json(event_log)
 
 
 if __name__ == '__main__':

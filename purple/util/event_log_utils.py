@@ -1,10 +1,7 @@
-import json
-
-from flask import jsonify
-from pm4py.objects.log.obj import EventLog
+from flask import jsonify  # Assuming you're using Flask for JSON serialization
 
 
-def event_log_to_json(event_log: EventLog):
+def event_log_to_json(event_log):
     log_dict = []
     for trace in event_log:
         trace_dict = {
@@ -12,9 +9,8 @@ def event_log_to_json(event_log: EventLog):
             "events": [],
         }
         for event in trace:
-            event_dict = {
-                "events": event # Convert event to a dictionary
-            }
+            # Convert event to a dictionary by accessing its attributes
+            event_dict = {key: value for key, value in event.items()}
             trace_dict["events"].append(event_dict)
         log_dict.append(trace_dict)
     return jsonify(log_dict)
