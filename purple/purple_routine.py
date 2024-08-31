@@ -1,16 +1,33 @@
-from pm4py.objects.log.obj import EventLog, Trace
+import pm4py
+from pm4py.objects.log.obj import EventLog
+from pm4py.visualization.powl.variants import net
 from werkzeug.datastructures import FileStorage
 
-from purple.evaluator.delta import Delta
-from purple.evaluator.log_evaluator.log_evaluator_or.log_evaluator_or import LogEvaluator, ILogEvaluator, \
+from purple.evaluator.log_evaluator.cn_log_evaluator.cn_log_evaluator import CnLogEvaluator
+from purple.evaluator.log_evaluator.or_log_evaluator.or_log_evaluator import LogEvaluatorOr, ILogEvaluator, \
     find_unmatched_paths
-from purple.model_manager import bpmn_model_manager
+from purple.model_manager.model_manager import load_model
 from purple.semantic_engine.i_semantic_engine import ISemanticEngine
-from purple.semantic_engine.or_semantic_engine import PetriSemanticEngine
+from purple.semantic_engine.petri_semantic_engine import PetriSemanticEngine
 from purple.simulator.i_simulator import ISimulator
-from purple.simulator.or_simulator import OrSimulator
+from purple.simulator.main_simulator import Simulator
 from purple.evaluator.trace_evaluator.trace_evaluator import TraceEvaluator, ITraceEvaluator
+from purple.util.event_log_utils import are_traces_equal
 from purple.util.lts_utils import show_lts, create_events_from_paths
+
+
+def order_relation(file: FileStorage, tau: int, instance_path):
+    net, initial_marking, final_marking = load_model(file, instance_path)
+    pm4py.view_petri_net(net, initial_marking, final_marking)
+    # print(net, initial_marking, final_marking)
+
+    if net is [] or net is None:
+        return None
+    le = LogEvaluatorOr(net)
+    te = TraceEvaluator()
+    se = PetriSemanticEngine(net)
+    sim = Simulator(se, te)
+    return or_purple_routine(se, sim, le, te, tau)
 
 
 def or_purple_routine(se: ISemanticEngine, sim: ISimulator, le: ILogEvaluator, te: ITraceEvaluator, tau: int):
@@ -66,48 +83,39 @@ def or_purple_routine(se: ISemanticEngine, sim: ISimulator, le: ILogEvaluator, t
     return event_log
 
 
-def are_traces_equal(trace1, trace2):
-    """
-    Compare two Trace objects for equality.
-    """
-    if len(trace1) != len(trace2):
-        return False
-
-    for event1, event2 in zip(trace1, trace2):
-        if event1['concept:name'] != event2['concept:name']:
-            return False
-        if event1['time:timestamp'] != event2['time:timestamp']:
-            return False
-        if event1['marking'] != event2['marking']:
-            return False
-
-    return True
-
-
-def order_relation(file: FileStorage, tau: int, instance_path):
-    net, initial_marking, final_marking = bpmn_model_manager.load_model(file, instance_path)
+def custom_noise(file, traces_number, missing_head, missing_tail, missing_episode, order_perturbation, alien_activities,
+                 instance_path):
+    net, initial_marking, final_marking = load_model(file, instance_path)
     # pm4py.view_petri_net(net, initial_marking, final_marking)
     # print(net, initial_marking, final_marking)
+    if net is [] or net is None:
+        return None
+    le = CnLogEvaluator(traces_number, missing_head, missing_tail, missing_episode,
+                        order_perturbation, alien_activities)
+    te = TraceEvaluator()
+    se = PetriSemanticEngine(net)
+    sim = Simulator(se, te)
+
+    return cn_purple_routine(se, sim, le, te, traces_number)
+
+
+def cn_purple_routine(se: ISemanticEngine, sim: ISimulator, le: ILogEvaluator, te: ITraceEvaluator, traces_number: int):
+    simple_traces = []
+    event_log: EventLog = EventLog()
+    initial_marking = se.get_initial_marking()
+    state_mapping = sim.initialize_lts(initial_marking)
 
     if net is [] or net is None:
         return None
-        # print(net)
-    le = LogEvaluator(net)
-    te = TraceEvaluator()
-    se = PetriSemanticEngine(net)
-    sim = OrSimulator(se, te)
-    return or_purple_routine(se, sim, le, te, tau)
 
+    for i in range(traces_number):
+        state_mapping, random_traces = sim.random_simulation(initial_marking, state_mapping)
+        simple_traces.extend([random_traces])
 
-def custom_noise(file, cost, precision, traces_number, instance_path):
-    net, initial_marking, final_marking = bpmn_model_manager.load_model(file, instance_path)
-    if net is [] or net is None:
-        return None
-    le = LogEvaluator(net)
-    te = TraceEvaluator()
-    se = PetriSemanticEngine(net)
-    sim = OrSimulator(se, te)
-    return EventLog()
+    event_log = le.evaluate(simple_traces)
+
+    # show_lts(sim.get_lts_graph())
+    return event_log
 
 
 def traces_frequency(file, slider_value):

@@ -1,12 +1,9 @@
-from datetime import datetime, timedelta
-
 import networkx as nx
 import random
 
-import pm4py
 import zope
-from pm4py.objects.log.obj import Event, Trace
-from purple.semantic_engine.or_semantic_engine import PetriSemanticEngine
+from pm4py.objects.log.obj import Trace
+from purple.semantic_engine.petri_semantic_engine import PetriSemanticEngine
 from purple.simulator.i_simulator import ISimulator
 from purple.evaluator.trace_evaluator.trace_evaluator import TraceEvaluator
 from purple.util.lts_utils import find_marking, get_prefix_traces, create_event
@@ -36,7 +33,7 @@ def parse_trace(trace):
 
 
 @zope.interface.implementer(ISimulator)
-class OrSimulator:
+class Simulator:
     def __init__(self, se, te):
         self.__lts = nx.DiGraph()
         self.__se: PetriSemanticEngine = se
@@ -112,18 +109,14 @@ class OrSimulator:
             if is_enabled(init_transition, current_marking):
                 # Fire the initial transition
                 new_marking = execute_transition_and_get_next_marking(init_transition, current_marking)
-
                 trace.append(create_event(init_transition, current_state, current_marking))
-
                 # Find the new state in the LTS
                 new_state = state_mapping.get(frozenset(new_marking.items()))
-
                 # Check if the successive transition is enabled
                 if is_enabled(successive_transition, new_marking):
                     # Fire the successive transition
                     final_marking = execute_transition_and_get_next_marking(successive_transition, new_marking)
                     trace.append(create_event(successive_transition, new_state, new_marking))
-
                     state_mapping, random_trace = self.random_simulation(final_marking, state_mapping, trace,
                                                                          new_marking)
                 else:
@@ -177,86 +170,3 @@ class OrSimulator:
         self.__lts.add_edge(current_state, target_state, label=transition.name)
         return new_marking, target_state
 
-    # def random_simulate(self):
-    #     initial_place = self.__se.get_initial_state()
-    #
-    #     if not self.__lts.has_node('S-I') and not self.__lts.has_node('S-1'):
-    #         self.__lts = self.update_lts('S-I')
-    #         self.__lts = self.update_lts('S-1', 'S-I', ['initEdge'], Event(), [initial_place])
-    #
-    #     return self.finalize_random_sim(initial_place)
-    #
-    # def finalize_random_sim(self, initial_place: PetriNet.Place):
-    #     # next_steps: [str, Trace] = self.__se.get_next_step(initial_place)
-    #     final_trace = Trace()
-    #     places: [PetriNet.Place] = [initial_place]
-    #     while places.__len__() > 0:
-    #         transitions: [PetriNet.Transition] = []
-    #         old_place_for_tracking = []
-    #         copy_places = copy.deepcopy(places)
-    #         for p in places:
-    #             next_tr: PetriNet.Transition = self.__se.get_next_transitions(p, True)
-    #             if next_tr not in transitions and next_tr is not None:
-    #                 transitions.append(next_tr)
-    #                 copy_places = self.remove_place_from_places(copy_places, p)
-    #                 old_place_for_tracking.append({
-    #                     "trans": next_tr,
-    #                     "placesForState": copy.deepcopy(copy_places)
-    #                 })
-    #             else:
-    #                 for item in old_place_for_tracking:
-    #                     if item["trans"] == next_tr:
-    #                         item["placesForState"].remove(p)
-    #
-    #         if transitions.__len__() > 0:
-    #             places = []
-    #             other_places_to_add
-    #             for t in transitions:
-    #                 next_places = self.__se.get_next_places(t)
-    #                 places_for_state: [PetriNet.Place] = []
-    #                 for item in old_place_for_tracking:
-    #                     if item["trans"] == t:
-    #                         item["placesForState"].extend(next_places)
-    #                         places_for_state = item["placesForState"]
-    #                 places.extend(next_places)
-    #                 event = Event({
-    #                     "concept:name": t.name,
-    #                     "time:timestamp": datetime.now() + timedelta(microseconds=self.__lts_index),
-    #                     "places": self.places_to_dict(next_places)
-    #                 })
-    #                 self.__lts = self.update_lts(
-    #                     f'S-{self.__lts_index}',
-    #                     f'S-{self.__lts_index - 1}',
-    #                     [t.name],
-    #                     event,
-    #                     places_for_state
-    #                 )
-    #                 final_trace.append(event)
-    #                 self.__lts_index += 1
-    #         else:
-    #             places = []
-    #
-    #     # print("final_trace")
-    #     # print(final_trace)
-    #     print(self.__lts)
-    #     return final_trace
-    # def place_to_dict(self, place: PetriNet.Place) -> dict:
-    #     return {
-    #         "name": place.name,
-    #         "in_arcs": [arc.source.name for arc in place.in_arcs],  # Assuming each arc has a name property
-    #         "out_arcs": [arc.target.name for arc in place.out_arcs],  # Assuming each arc has a name property
-    #         "properties": place.properties  # Assuming properties is already serializable
-    #     }
-    #
-    # def places_to_dict(self, places: [PetriNet.Place]) -> [dict]:
-    #     return [self.place_to_dict(place) for place in places]
-    #
-    # def update_lts(self, state, old_state: str = None, edges: [str] = None, event: Event = None, new_node_places=None):
-    #     temp_lts = self.__lts
-    #     temp_lts.add_node(state, places=[new_node_places])
-    #
-    #     if edges is not None and old_state is not None and event is not None:
-    #         temp_lts.add_edge(old_state, state, label=edges[0], event=event)
-    #         # print(temp_lts.edges.__getattribute__(__name=transition))
-    #
-    #     return temp_lts

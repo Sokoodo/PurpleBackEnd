@@ -33,16 +33,22 @@ def upload_graph():
 @app.route('/api/custom-noise/event-log', methods=['POST'])
 def custom_noise():
     file = request.files['singleFile']
-    precision = int(request.args.get('precision'))
-    cost = int(request.args.get('cost'))
     traces_number = int(request.args.get('tracesNumber'))
-    event_log = purple_routine.custom_noise(file, precision, cost, traces_number, app.instance_path[:-9])
+
+    missing_head = float(request.args.get('missingHead'))
+    missing_tail = float(request.args.get('missingTail'))
+    missing_episode = float(request.args.get('missingEpisode'))
+    order_perturbation = float(request.args.get('orderPerturbation'))
+    alien_activities = float(request.args.get('alienActivities'))
+    event_log = purple_routine.custom_noise(file, traces_number, missing_head, missing_tail, missing_episode,
+                                            order_perturbation, alien_activities, app.instance_path[:-9])
 
     file_name = secure_filename(file.filename)
     if event_log is None:
         return ["Problem with event log generation", ]
     # print(file.filename)
     else:
+        print(len(event_log))
         return event_log_to_json(event_log)
 
 

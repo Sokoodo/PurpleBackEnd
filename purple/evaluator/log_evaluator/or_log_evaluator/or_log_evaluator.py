@@ -2,12 +2,12 @@ import zope.interface
 
 from purple.evaluator.delta import Delta
 from purple.evaluator.log_evaluator.i_log_evaluator import ILogEvaluator
-from purple.evaluator.log_evaluator.log_evaluator_or.alpha_relations import compare_footprint_matrices, \
+from purple.evaluator.log_evaluator.or_log_evaluator.alpha_relations import compare_footprint_matrices, \
     get_footprint_matrix_from_traces, get_footprint_matrix_from_eventlog
 
 
 @zope.interface.implementer(ILogEvaluator)
-class LogEvaluator:
+class LogEvaluatorOr:
     def __init__(self, net):
         self.__petri_footprint_matrix, self.__paths_from_petri = get_footprint_matrix_from_eventlog(net)
         self.__ref_relations = len(self.__petri_footprint_matrix)

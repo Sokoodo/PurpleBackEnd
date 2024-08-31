@@ -1,11 +1,14 @@
-from flask import jsonify  # Assuming you're using Flask for JSON serialization
+from flask import jsonify
 
 
 def event_log_to_json(event_log):
+    """
+    Translates event log to json
+    """
     log_dict = []
     for trace in event_log:
         trace_dict = {
-            "attributes": trace.attributes,
+            "attributes": trace.attributes if hasattr(trace, 'attributes') else {},  # Check if attributes exist
             "events": [],
         }
         for event in trace:
@@ -14,3 +17,21 @@ def event_log_to_json(event_log):
             trace_dict["events"].append(event_dict)
         log_dict.append(trace_dict)
     return jsonify(log_dict)
+
+
+def are_traces_equal(trace1, trace2):
+    """
+    Compare two Trace objects for equality.
+    """
+    if len(trace1) != len(trace2):
+        return False
+
+    for event1, event2 in zip(trace1, trace2):
+        if event1['concept:name'] != event2['concept:name']:
+            return False
+        if event1['time:timestamp'] != event2['time:timestamp']:
+            return False
+        if event1['marking'] != event2['marking']:
+            return False
+
+    return True

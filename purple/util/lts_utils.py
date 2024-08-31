@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from typing import Set
 
 import networkx as nx
 from matplotlib import pyplot as plt
@@ -9,6 +8,9 @@ from pm4py.objects.powl.obj import Transition
 
 
 def create_event(t, current_state, current_marking):
+    """
+    Create an event from a given transition
+    """
     return Event({
         "concept:name": t.name,
         "time:timestamp": datetime.now() + timedelta(microseconds=current_state),
@@ -17,6 +19,9 @@ def create_event(t, current_state, current_marking):
 
 
 def create_events_from_paths(unmatched_paths):
+    """
+    Create an event from a list of paths
+    """
     traces = []
     i = 30
     for path in unmatched_paths:
@@ -33,20 +38,15 @@ def create_events_from_paths(unmatched_paths):
 
 
 def convert_marking_to_str(marking):
+    """
+    Convert a Marking object to a string
+    """
     return {str(key): value for key, value in marking.items()}
 
 
 def find_marking(lts: nx.DiGraph, transition_name: str) -> [Marking]:
     """
     Find the marking(s) in the LTS (Directed Graph) where a specific transition name is present.
-
-    Parameters:
-    - lts (nx.DiGraph): The LTS graph with markings as nodes and transitions as edge labels.
-    - transition_name (str): The name of the transition whose marking we want to find.
-
-    Returns:
-    - List[Marking]: A list of markings where the given transition name is present.
-    The source marking of the given transition name is also returned.
     """
     ret = []
 
@@ -63,16 +63,7 @@ def find_marking(lts: nx.DiGraph, transition_name: str) -> [Marking]:
 def get_prefix_traces(lts: nx.DiGraph, initial_marking: Marking, target_marking: Marking):
     """
     Navigates back the LTS from the target_marking to the initial_marking, collecting all edge names.
-
-    Parameters:
-    - lts (nx.DiGraph): The LTS graph with markings as nodes and transitions as edge labels.
-    - initial_marking (Marking): The initial marking to navigate back to.
-    - target_marking (Marking): The target marking to start navigating from.
-
-    Returns:
-    - List[str]: A list of edge names (transition names) from target_marking to initial_marking.
     """
-
     # Function to compare two markings
     def markings_are_equal(marking1, marking2):
         return marking1 == marking2
@@ -89,7 +80,6 @@ def get_prefix_traces(lts: nx.DiGraph, initial_marking: Marking, target_marking:
 
     # Initialize the list to store the traces
     trace: Trace = Trace()
-
     # Perform a reverse traversal from target_node to initial_marking
     current_node = target_node
     while current_node is not None and not markings_are_equal(lts.nodes[current_node].get('marking'), initial_marking):
@@ -101,13 +91,11 @@ def get_prefix_traces(lts: nx.DiGraph, initial_marking: Marking, target_marking:
         # Choose a predecessor (in this example, we just pick the first one)
         predecessor = predecessors[0]
         edge_data = lts.get_edge_data(predecessor, current_node)
-
         # Get the transition name (edge label) and add it to the list
         t = Transition()
-        t.label = edge_data.get('label')
-        t.name = edge_data.get('label')
+        t.label = edge_data.get('label', "")
+        t.name = edge_data.get('label', "")
         trace.append(create_event(t, current_node, lts.nodes[current_node].get('marking')))
-
         # Move to the predecessor node
         current_node = predecessor
 

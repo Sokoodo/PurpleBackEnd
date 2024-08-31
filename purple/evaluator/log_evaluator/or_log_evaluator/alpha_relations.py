@@ -131,8 +131,8 @@ def compare_footprint_matrices(event_log_matrix, petri_net_matrix, tau, ref_rela
 
     # Da testare quando guided sim funziona
     if (1 - len(el_missing) / ref_relations) >= tau / 100:
-        print(f"{tau / 100}, SOTTO AL THRESHOLD")
-        print(f"{1 - len(el_missing) / ref_relations}%, SOTTO AL THRESHOLD")
+        print(f"{tau / 100}")
+        print(f"{1 - len(el_missing) / ref_relations}%, SOPRA AL THRESHOLD")
         return EventLog(), True
     return el_missing, False
 
