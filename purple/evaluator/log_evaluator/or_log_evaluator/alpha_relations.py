@@ -108,7 +108,6 @@ def compare_footprint_matrices(event_log_matrix, petri_net_matrix, tau, ref_rela
         if event not in event_log_matrix:  # quà entra quando l'evento non è nella 2a matrice
             if len(transitions) == 0:
                 trace = Trace()
-                # print(f"{event} PORCODIO")
                 trace._list.append(Event({"concept:name": event}))
                 el_missing.append(trace)
             for next_event in transitions:

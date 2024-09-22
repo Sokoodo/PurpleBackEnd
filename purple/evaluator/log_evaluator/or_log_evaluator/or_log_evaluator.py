@@ -7,7 +7,7 @@ from purple.evaluator.log_evaluator.or_log_evaluator.alpha_relations import comp
 
 
 @zope.interface.implementer(ILogEvaluator)
-class LogEvaluatorOr:
+class OrLogEvaluator:
     def __init__(self, net):
         self.__petri_footprint_matrix, self.__paths_from_petri = get_footprint_matrix_from_eventlog(net)
         self.__ref_relations = len(self.__petri_footprint_matrix)
@@ -20,16 +20,40 @@ class LogEvaluatorOr:
         pass
 
     def get_footprint_matrix(self):
+        """
+        Getter of the footprint matrix from the model
+
+        :return: footprint matrix of the model
+        """
         return self.__petri_footprint_matrix
 
-    def get_all_paths_from_petri(self):
+    def get_all_paths_from_petri(self) -> list[list]:
+        """
+        Getter of the all the possible paths matrix from the mode
+
+        :return: all the possible paths that can be found in the model
+        """
         return self.__paths_from_petri
 
     def evaluate(self, traces, tau):
+        """
+        Evaluate the model and generates a delta with missing traces
+
+        :param traces: input traces to check
+        :param tau: parameter to check if the threshold is satisfied
+        :return: Delta with missing traces and a boolean indicating if threshold is satisfied
+        """
         footprint_matrix_from_event_log = get_footprint_matrix_from_traces(traces)
         return self.get_delta(footprint_matrix_from_event_log, tau)
 
     def get_delta(self, footprint_matrix_from_event_log, tau):
+        """
+        Compares the matrix from eventLog and the matrix from Model and returns the Delta
+
+        :param footprint_matrix_from_event_log: footprint matrix of the event log
+        :param tau: parameter to check if the threshold is satisfied
+        :return: Delta with missing traces and a boolean indicating if threshold is satisfied
+        """
         delta, tau_interruption = compare_footprint_matrices(
             footprint_matrix_from_event_log,
             self.__petri_footprint_matrix, tau,

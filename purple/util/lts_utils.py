@@ -64,7 +64,7 @@ def get_prefix_traces(lts: nx.DiGraph, initial_marking: Marking, target_marking:
     """
     Navigates back the LTS from the target_marking to the initial_marking, collecting all edge names.
     """
-    # Function to compare two markings
+    # Function to compare two markings and see if they are the same
     def markings_are_equal(marking1, marking2):
         return marking1 == marking2
 
@@ -106,7 +106,10 @@ def get_prefix_traces(lts: nx.DiGraph, initial_marking: Marking, target_marking:
 
 
 def show_lts(lts):
-    pos = nx.spring_layout(lts, seed=42)  # Seed for reproducible layout
+    """
+    Show LTS (Directed Graph) after initializing its characteristics
+    """
+    pos = nx.spring_layout(lts, seed=42)
     # Node and edge styles
     node_size = 500
     node_color = 'skyblue'
@@ -125,4 +128,5 @@ def show_lts(lts):
     edge_labels = nx.get_edge_attributes(lts, 'label')
     nx.draw_networkx_edge_labels(lts, pos, edge_labels=edge_labels, font_color='red', font_size=10)
     plt.title('LTS Visualization (Multiple Execution Paths)')
+    # Show the actual graph
     plt.show()

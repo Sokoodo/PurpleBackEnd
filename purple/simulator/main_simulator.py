@@ -10,6 +10,13 @@ from purple.util.lts_utils import find_marking, get_prefix_traces, create_event
 
 
 def execute_transition_and_get_next_marking(transition, marking):
+    """
+    Executes the transition and get the next marking
+
+    :param transition: transition to execute
+    :param marking: current marking
+    :return: updated marking after execution
+    """
     new_marking = marking.copy()
     for arc in transition.in_arcs:
         new_marking[arc.source] -= 1
@@ -19,10 +26,23 @@ def execute_transition_and_get_next_marking(transition, marking):
 
 
 def is_enabled(transition, marking) -> bool:
+    """
+    If all the incoming nodes of the transition are enabled, the transition is enabled and can be executed
+
+    :param transition: transition to check
+    :param marking: marking to understand if the transition is enabled or not
+    :return: True if the transition can be executed
+    """
     return all(marking.get(arc.source, 0) > 0 for arc in transition.in_arcs)
 
 
 def parse_trace(trace):
+    """
+    Parses a given trace and gets a tuple of initial and successive events
+
+    :param trace: trace to parse
+    :return: tuple of initial and successive events
+    """
     events = trace._list
     sequence = []
     for i in range(len(events) - 1):
@@ -41,9 +61,20 @@ class Simulator:
         self.__state_counter = 0
 
     def get_lts_graph(self):
+        """
+        Getter for the LTS model
+
+        :return: the lts from nx.DiGraph()
+        """
         return self.__lts
 
     def initialize_lts(self, initial_marking):
+        """
+        Initialization of the LTS from an initial marking and creates an empty initial node
+
+        :param initial_marking: the starting point
+        :return: new state mapping; a "global" marking to keep track of the markings
+        """
         self.__lts = nx.DiGraph()
         self.__state_counter = 1
         # Frozen set is just an immutable version of a Python set object.
@@ -54,6 +85,15 @@ class Simulator:
         return state_mapping
 
     def global_simulate(self, delta_trace, initial_marking, state_mapping):
+        """
+        Method that analyzes the Delta to choose if perform the random simulation or the guided simulation and returns a
+        list of traces discovered with the simulation
+
+        :param delta_trace: The delta with missing traces to discover
+        :param initial_marking: The initial point of the simulation
+        :param state_mapping: "global" marking to keep track of the markings
+        :return: The discovered traces after simulation
+        """
         traces = []
         if delta_trace is None:
             state_mapping, random_traces = self.random_simulation(initial_marking, state_mapping)
@@ -61,7 +101,6 @@ class Simulator:
         else:
             print(f"Delta_trace: {delta_trace}")
             markings = find_marking(self.__lts, delta_trace[0]["concept:name"])
-            print(f"Markings: {markings}")
             if markings is None or len(markings) == 0:
                 state_mapping, random_traces = self.random_simulation(initial_marking, state_mapping)
                 traces.extend([random_traces])
@@ -90,6 +129,11 @@ class Simulator:
         """
         Simulate starting from the source_marking until reaching a final marking.
         Follows the path of init first, then directly the path of successive from the relation parameter.
+
+        :param source_marking: Initial marking
+        :param state_mapping: "global" marking to keep track of the markings
+        :param relation: relation to discover with guided simulation
+        :return: list of discovered traces
         """
         trace: Trace = Trace()
         random_trace: Trace = Trace()
@@ -123,10 +167,19 @@ class Simulator:
                     # If the successive transition is not enabled
                     state_mapping, random_trace = self.random_simulation(new_marking, state_mapping, trace,
                                                                          current_marking)
-        print(f'Random Traces: {random_trace}')
+        print(f'GUIDED Traces: {random_trace}')
         return state_mapping, random_trace
 
     def random_simulation(self, initial_marking, state_mapping, guided_traces=None, source_marking=None):
+        """
+        Perform a random execution of the model, in this case a petrinet, and returns the list of discovered traces
+
+        :param initial_marking: Initial marking, where to start
+        :param state_mapping: "global" marking to keep track of the markings
+        :param guided_traces: If you already have starting traces, default None
+        :param source_marking: If you already have starting traces you have to include their marking, default None
+        :return: list of discovered traces
+        """
         traces: Trace = guided_traces if guided_traces is not None else Trace()
         frozen_marking = frozenset(initial_marking.items())
         if frozen_marking not in state_mapping:
@@ -160,6 +213,15 @@ class Simulator:
         return state_mapping, traces  # Return a list of traces
 
     def finalize_sim_update_lts(self, state_mapping, current_marking, current_state, transition):
+        """
+        Finalization: creates a new marking and update the model with the new node and edge
+
+        :param state_mapping: "global" marking to keep track of the markings
+        :param current_marking: current marking
+        :param current_state: current state of the LTS
+        :param transition: transition to include in the LTS
+        :return: the new marking after execution and the next state of the LTS
+        """
         new_marking = execute_transition_and_get_next_marking(transition, current_marking)
         frozen_marking = frozenset(new_marking.items())
         if frozen_marking not in state_mapping:
@@ -169,4 +231,3 @@ class Simulator:
         target_state = state_mapping[frozen_marking]
         self.__lts.add_edge(current_state, target_state, label=transition.name)
         return new_marking, target_state
-

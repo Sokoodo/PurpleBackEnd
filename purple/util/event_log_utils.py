@@ -35,3 +35,16 @@ def are_traces_equal(trace1, trace2):
             return False
 
     return True
+
+
+def remove_duplicate_traces(traces):
+    """
+    Remove duplicate traces and return a list of new unique traces.
+    """
+    unique_traces = []
+
+    for trace in traces:
+        if not any(trace == unique_trace for unique_trace in unique_traces):
+            unique_traces.append(trace)
+
+    return unique_traces

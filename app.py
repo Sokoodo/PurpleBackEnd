@@ -17,7 +17,12 @@ cors = CORS(app, resource={
 
 
 @app.route('/api/order-relation/event-log', methods=['POST'])
-def upload_graph():
+def order_relation():
+    """
+    Order Relation API, to get the event log with all the traces below the specified threshold
+
+    :return: event log with all the traces
+    """
     file = request.files['singleFile']
     slider_value = int(request.args.get('sliderValue'))
     event_log = purple_routine.order_relation(file, slider_value, app.instance_path[:-9])
@@ -32,6 +37,11 @@ def upload_graph():
 
 @app.route('/api/custom-noise/event-log', methods=['POST'])
 def custom_noise():
+    """
+    Custom Noise API, to get a list of desired traces and also adding the required noisy traces to the final Event Log
+
+    :return: the final event log with noisy traces
+    """
     file = request.files['singleFile']
     traces_number = int(request.args.get('tracesNumber'))
 

@@ -11,7 +11,7 @@ class ISimulator(zope.interface.Interface):
     def initialize_lts(self, initial_marking):
         pass
 
-    def global_simulation(self, delta, initial_marking, state_mapping):
+    def global_simulate(self, delta, initial_marking, state_mapping):
         pass
 
     def random_simulation(self, initial_marking, state_mapping):
