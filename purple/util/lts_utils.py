@@ -30,7 +30,7 @@ def create_events_from_paths(unmatched_paths):
             trace.append(Event({
                 "concept:name": t,
                 "time:timestamp": datetime.now() + timedelta(microseconds=i),
-                "marking": ""
+                "marking": {}
             }))
             i += 1
         traces.append(trace)

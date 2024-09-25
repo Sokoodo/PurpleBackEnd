@@ -11,12 +11,12 @@ class OrLogEvaluator:
     def __init__(self, net):
         self.__petri_footprint_matrix, self.__paths_from_petri = get_footprint_matrix_from_eventlog(net)
         self.__ref_relations = len(self.__petri_footprint_matrix)
-        print("petri_footprint_matrix")
-        print(self.__petri_footprint_matrix)
+        #print("petri_footprint_matrix")
+        #print(self.__petri_footprint_matrix)
         for x in self.__petri_footprint_matrix.keys():
             self.__ref_relations += len(self.__petri_footprint_matrix[x])
-        print("ref relations")
-        print(self.__ref_relations)
+        #print("ref relations")
+        #print(self.__ref_relations)
         pass
 
     def get_footprint_matrix(self):

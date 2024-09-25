@@ -24,7 +24,7 @@ class TraceEvaluator:
         :param all_paths: all possible model paths
         :param traces: the traces we are evaluating
         """
-        max_simulated_traces = len(all_paths) * 10
+        max_simulated_traces = len(all_paths) * 12
         if len(traces) > max_simulated_traces:
             self.__interrupted = True
         pass

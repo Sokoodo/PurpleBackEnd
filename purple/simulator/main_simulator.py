@@ -99,7 +99,7 @@ class Simulator:
             state_mapping, random_traces = self.random_simulation(initial_marking, state_mapping)
             traces.extend([random_traces])
         else:
-            print(f"Delta_trace: {delta_trace}")
+            #print(f"Delta_trace: {delta_trace}")
             markings = find_marking(self.__lts, delta_trace[0]["concept:name"])
             if markings is None or len(markings) == 0:
                 state_mapping, random_traces = self.random_simulation(initial_marking, state_mapping)
@@ -112,7 +112,7 @@ class Simulator:
                         traces.extend([random_traces])
                     else:
                         relation = parse_trace(delta_trace)
-                        print(f'Prefix Traces: {prefix}')
+                        #print(f'Prefix Traces: {prefix}')
                         state_mapping, guided_trace = self.guided_simulation(m, state_mapping, relation)
                         if len(guided_trace) > 0:
                             for gt in guided_trace:
@@ -167,7 +167,7 @@ class Simulator:
                     # If the successive transition is not enabled
                     state_mapping, random_trace = self.random_simulation(new_marking, state_mapping, trace,
                                                                          current_marking)
-        print(f'GUIDED Traces: {random_trace}')
+        #print(f'GUIDED Traces: {random_trace}')
         return state_mapping, random_trace
 
     def random_simulation(self, initial_marking, state_mapping, guided_traces=None, source_marking=None):

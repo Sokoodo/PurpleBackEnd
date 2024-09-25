@@ -29,7 +29,8 @@ def order_relation(file: FileStorage, tau: int, instance_path):
     """
     net, initial_marking, final_marking = load_model(file, instance_path)
     # pm4py.view_petri_net(net, initial_marking, final_marking)
-    # print(net, initial_marking, final_marking)
+
+    # #print(net, initial_marking, final_marking)
 
     if net is [] or net is None:
         return None
@@ -37,6 +38,7 @@ def order_relation(file: FileStorage, tau: int, instance_path):
     te = TraceEvaluator()
     se = PetriSemanticEngine(net)
     sim = Simulator(se, te)
+
     return or_purple_routine(se, sim, le, te, tau)
 
 
@@ -46,57 +48,53 @@ def or_purple_routine(se: ISemanticEngine, sim: ISimulator, le: ILogEvaluator, t
     initial_marking = se.get_initial_marking()
     state_mapping = sim.initialize_lts(initial_marking)
     # Debug: Initial Marking and State Mapping
-    print(f"Initial State Mapping: {state_mapping}")
+    #print(f"Initial State Mapping: {state_mapping}")
 
     state_mapping, st = sim.global_simulate(None, initial_marking, state_mapping)
     simple_traces.extend(st)
 
     delta, tau_interruption = le.evaluate(simple_traces, tau)
-    print(f"Initial Delta Missing: {delta.get_missing()}")
+    #print(f"Initial Delta Missing: {delta.get_missing()}")
 
-    print("Simple Traces After Initial Simulation:")
-    print(simple_traces)
+    #print("Simple Traces After Initial Simulation:")
+    #print(simple_traces)
     while delta and not delta.is_empty() and not te.get_interrupted():
         for delta_trace in delta.get_missing():
             state_mapping, temp_guided_traces = sim.global_simulate(delta_trace, initial_marking, state_mapping)
             for temp_guided_trace in temp_guided_traces:
-                for trace in simple_traces:
-                    if not are_traces_equal(trace, temp_guided_trace):
-                        simple_traces.extend(temp_guided_traces)  # Use extend to add lists of events
+                simple_traces.extend([temp_guided_trace])  # Use extend to add lists of events
             # Debug: Trace the new traces and delta
-            print(f"New Guided Traces: {temp_guided_traces}")
-            print(f"State Mapping: {state_mapping}")
+            #print(f"New Guided Traces: {temp_guided_traces}")
+            #print(f"State Mapping: {state_mapping}")
 
             te.evaluate(le.get_all_paths_from_petri(), simple_traces)
             if te.get_interrupted():
-                print("Trace Evaluator Interruption.")
+                #print("Trace Evaluator Interruption.")
                 break
 
             delta, tau_interruption = le.evaluate(simple_traces, tau)
-            print(f"Updated Delta Missing: {delta.get_missing()}")
+            #print(f"Updated Delta Missing: {delta.get_missing()}")
             if delta.is_empty():
-                print("Delta is empty, breaking loop.")
+                #print("Delta is empty, breaking loop.")
                 break
+
+    simple_traces = remove_duplicate_traces(simple_traces)
 
     if not tau_interruption:
         all_paths = le.get_all_paths_from_petri()
-        print(f"All_paths: {all_paths}")
-        print(f"Simple Traces: {simple_traces}")
+        #print(f"All_paths: {all_paths}")
+        #print(f"Simple Traces: {simple_traces}")
         unmatched_paths = find_unmatched_paths(all_paths, simple_traces)
-        print(f"unmatched_paths: {unmatched_paths}")
+        #print(f"unmatched_paths: {unmatched_paths}")
         unmatched_traces = create_events_from_paths(unmatched_paths)
         for unmatched_trace in unmatched_traces:
-            for trace in simple_traces:
-                if not are_traces_equal(trace, unmatched_trace):
-                    simple_traces.extend(unmatched_trace)
-        print(f"Final Simple Traces: {simple_traces}")
+            simple_traces.extend(unmatched_trace)
+        #print(f"Final Simple Traces: {simple_traces}")
 
-    simple_traces = remove_duplicate_traces(simple_traces)
     for trace in simple_traces:
         event_log.append(trace)
 
     show_lts(sim.get_lts_graph())
-
     return event_log
 
 
@@ -117,7 +115,7 @@ def custom_noise(file, traces_number, missing_head, missing_tail, missing_episod
     """
     net, initial_marking, final_marking = load_model(file, instance_path)
     # pm4py.view_petri_net(net, initial_marking, final_marking)
-    # print(net, initial_marking, final_marking)
+    # #print(net, initial_marking, final_marking)
     if net is [] or net is None:
         return None
     le = CnLogEvaluator(traces_number, missing_head, missing_tail, missing_episode,
@@ -131,7 +129,6 @@ def custom_noise(file, traces_number, missing_head, missing_tail, missing_episod
 
 def cn_purple_routine(se: ISemanticEngine, sim: ISimulator, le: ILogEvaluator, te: ITraceEvaluator, traces_number: int):
     simple_traces = []
-    event_log: EventLog = EventLog()
     initial_marking = se.get_initial_marking()
     state_mapping = sim.initialize_lts(initial_marking)
 
@@ -154,4 +151,3 @@ def traces_frequency(file, slider_value):
 
 def alignment_cost(file, slider_value):
     pass
-

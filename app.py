@@ -1,3 +1,5 @@
+import time
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
@@ -23,6 +25,7 @@ def order_relation():
 
     :return: event log with all the traces
     """
+    start_time = time.time()
     file = request.files['singleFile']
     slider_value = int(request.args.get('sliderValue'))
     event_log = purple_routine.order_relation(file, slider_value, app.instance_path[:-9])
@@ -32,6 +35,10 @@ def order_relation():
         return ["Problem with event log generation", ]
     # print(file.filename)
     else:
+        end_time = time.time()  # End timer
+        execution_time = end_time - start_time  # Calculate the difference
+
+        print(f"Execution time: {execution_time:.4f} seconds")
         return event_log_to_json(event_log)
 
 
@@ -42,6 +49,7 @@ def custom_noise():
 
     :return: the final event log with noisy traces
     """
+    start_time = time.time()
     file = request.files['singleFile']
     traces_number = int(request.args.get('tracesNumber'))
 
@@ -59,6 +67,10 @@ def custom_noise():
     # print(file.filename)
     else:
         print(len(event_log))
+        end_time = time.time()  # End timer
+        execution_time = end_time - start_time  # Calculate the difference
+
+        print(f"Execution time: {execution_time:.4f} seconds")
         return event_log_to_json(event_log)
 
 

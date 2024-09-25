@@ -29,8 +29,6 @@ def are_traces_equal(trace1, trace2):
     for event1, event2 in zip(trace1, trace2):
         if event1['concept:name'] != event2['concept:name']:
             return False
-        if event1['time:timestamp'] != event2['time:timestamp']:
-            return False
         if event1['marking'] != event2['marking']:
             return False
 
@@ -42,9 +40,13 @@ def remove_duplicate_traces(traces):
     Remove duplicate traces and return a list of new unique traces.
     """
     unique_traces = []
+    unique_trace_names = []
 
     for trace in traces:
-        if not any(trace == unique_trace for unique_trace in unique_traces):
+        event_names = [event["concept:name"] for event in trace]
+
+        if event_names not in unique_trace_names:
             unique_traces.append(trace)
+            unique_trace_names.append(event_names)
 
     return unique_traces

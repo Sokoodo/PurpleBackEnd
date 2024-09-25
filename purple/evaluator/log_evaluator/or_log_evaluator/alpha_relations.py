@@ -39,7 +39,6 @@ def get_all_possible_paths(petri_net: PetriNet):
     """
     Get all the possible paths from the execution of a petri net.
     """
-    print(f"{petri_net} PORCODIO")
     im = Marking()
     for p in petri_net.places:
         if len(p.in_arcs) == 0:
@@ -95,8 +94,8 @@ def get_footprint_matrix_from_traces(traces):
             if init not in footprint_matrix:
                 footprint_matrix[init] = {}
 
-    print("log_footprint_matrix")
-    print(footprint_matrix)
+    #print("log_footprint_matrix")
+    #print(footprint_matrix)
 
     return footprint_matrix
 
@@ -123,15 +122,15 @@ def compare_footprint_matrices(event_log_matrix, petri_net_matrix, tau, ref_rela
                     trace._list.append(Event({"concept:name": next_event}))
                     el_missing.append(trace)
 
-    print("Compare: Missing relations")
+    #print("Compare: Missing relations")
     for trace in el_missing:
         events_str = " -> ".join(event["concept:name"] for event in trace._list)
-        print(f"Trace: {events_str}")
+        #print(f"Trace: {events_str}")
 
     # Da testare quando guided sim funziona
     if (1 - len(el_missing) / ref_relations) >= tau / 100:
-        print(f"{tau / 100}")
-        print(f"{1 - len(el_missing) / ref_relations}%, SOPRA AL THRESHOLD")
+        #print(f"{tau / 100}")
+        #print(f"{1 - len(el_missing) / ref_relations}%, SOPRA AL THRESHOLD")
         return EventLog(), True
     return el_missing, False
 
