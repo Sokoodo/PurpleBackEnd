@@ -13,9 +13,6 @@ def load_model(file, instance_path):
         new_path = save_file_get_path(file, instance_path, '../bpmn_model.bpmn')
         bpmn_model = pm4py.read.read_bpmn(new_path)
         net, initial_marking, final_marking = pm4py.convert_to_petri_net(bpmn_model)
-        for place in list(net.places):  # Create a list copy of net.places
-            if place.name in ['source', 'sink']:
-                net.places.remove(place)
     else:
         raise ValueError("Unsupported file format. Only .pnml and .bpmn are supported.")
     return net, initial_marking, final_marking

@@ -62,7 +62,8 @@ class CnLogEvaluator:
         for trace in self.createAlienTraces(alien_activities_traces):
             event_log.append(trace)
 
-        normal_traces = traces[index_to_count:index_to_count + (self._traces_number - math.floor(self._tot_noisy_traces))]
+        normal_traces = traces[
+                        index_to_count:index_to_count + (self._traces_number - math.floor(self._tot_noisy_traces))]
         for trace in normal_traces:
             event_log.append(trace)
 
@@ -147,21 +148,27 @@ class CnLogEvaluator:
 
         for i, trace in enumerate(alien_activities_traces):
             temp_trace = deepcopy(trace)
-            max_alien_events = len(temp_trace) - 2
-            num_alien_events = random.randint(1, max_alien_events)
-            alien_events = []
+            max_alien_events = max(len(temp_trace) - 2, 1)  # Ensure max_alien_events is at least 1
 
+            # We want to generate at least 1 alien event
+            num_alien_events = random.randint(1, max_alien_events)
+
+            alien_events = []
+            # Generate alien events
             for j in range(num_alien_events):
                 new_alien_event = Event({
                     "concept:name": f"AlienEvent_{j + 1}",
-                    "time:timestamp": datetime.now() + timedelta(microseconds=i * 100 + j),
+                    "time:timestamp": datetime.now() + timedelta(seconds=i * 60 + j),
                     "marking": ""
                 })
                 alien_events.append(new_alien_event)
 
+            # Insert alien events at random positions within the trace
             for new_alien_event in alien_events:
-                position = random.randint(1, len(temp_trace) - 1)
-                temp_trace.insert(position, new_alien_event)
+                if len(temp_trace) > 1:
+                    # Ensure position is between 1 and len(temp_trace) - 1
+                    position = random.randint(1, len(temp_trace) - 1)
+                    temp_trace.insert(position, new_alien_event)
 
             new_alien_traces.append(temp_trace)
 
